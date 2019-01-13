@@ -1,0 +1,43 @@
+#!/bin/bash
+
+############################################
+# dimensions [MATRIX] - accepts one matrix
+# and prints the # of rows and # columns.
+############################################
+dimensions() {
+
+}
+
+############################################
+# transpose [MATRIX] - accepts one matrix
+# and prints the transpose of that matrix.
+############################################
+transpose() {
+
+}
+
+############################################
+# mean [MATRIX] - accepts one matrix and 
+# prints the mean of each columns numbers.
+############################################
+mean() {
+
+}
+
+############################################
+# add [MATRIX_1] [MATRIX_2] - accepts 
+# exactly 2 matrices and if they're valid,
+# they print out the summed matrix.
+############################################
+add() {
+
+}
+
+############################################
+# multiply [MATRIX_1] [MATRIX_2] - accepts
+# exaclty 2 matrices and if they're valid, 
+# they print out the product matrix.
+############################################
+multiply() {
+
+}
