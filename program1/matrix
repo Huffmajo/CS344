@@ -1,22 +1,31 @@
 #!/bin/bash
 ############################################
+# error - prints the string argument/error,
+# sends stdout to stderr and exits 1
+############################################
+error() {
+	$1 >$2
+	exit 1
+}
+
+############################################
 # dimensions [MATRIX] - accepts one matrix
 # and prints the # of rows and # columns.
 ############################################
 dimensions() {
-row=0
-col=0
-while read myLine
-do
+	row=0
 	col=0
-	row=`expr $row + 1`
-	for i in $myLine
+		while read myLine
 	do
-		col=`expr $col + 1`
-	done
-done<$matrix1
-echo "$row $col"
-exit 0
+		col=0
+		row=`expr $row + 1`
+		for i in $myLine
+		do
+			col=`expr $col + 1`
+		done
+	done<$matrix1
+	echo "$row $col"
+	exit 0
 }
 
 ############################################
@@ -24,7 +33,7 @@ exit 0
 # and prints the transpose of that matrix.
 ############################################
 transpose() {
-echo "transpose"
+	echo "transpose"
 }
 
 ############################################
@@ -32,7 +41,7 @@ echo "transpose"
 # prints the mean of each columns numbers.
 ############################################
 mean() {
-echo "mean"
+	echo "mean"
 }
 
 ############################################
@@ -41,7 +50,7 @@ echo "mean"
 # they print out the summed matrix.
 ############################################
 add() {
-echo "add"
+	echo "add"
 }
 
 ############################################
@@ -50,7 +59,7 @@ echo "add"
 # they print out the product matrix.
 ############################################
 multiply() {
-echo "multiply"
+	echo "multiply"
 }
 
 # Read first argument to determine what function to run
@@ -65,7 +74,7 @@ then
 	echo "Number of arguments entered: $numArg"
 	echo "Entered function: dims"
 	# Confirm only one argument is entered
-	if [ $# == 2 ]
+	if [ $# -eq 2 ]
 	then
 		echo "valid # of arguments"
 		matrix1=$2
@@ -103,7 +112,7 @@ then
 
 ###############################
 # Check for multiply function
-elif [ $func == "mutiply" ]
+elif [ $func == "multiply" ]
 then
 	echo "Entered function: multiply"
 
