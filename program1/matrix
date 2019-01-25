@@ -4,7 +4,7 @@
 # sends stdout to stderr and exits 1
 ############################################
 error() {
-	$1 >$2
+	echo $1 >&2
 	exit 1
 }
 
@@ -12,7 +12,7 @@ error() {
 # dimensions [MATRIX] - accepts one matrix
 # and prints the # of rows and # columns.
 ############################################
-dimensions() {
+dims() {
 	row=0
 	col=0
 		while read myLine
@@ -65,31 +65,27 @@ multiply() {
 # Read first argument to determine what function to run
 func=$1
 numArg=$#
-echo "First arguement: $func"
+#echo "First arguement: $func"
 
 ################################
 # Check for dims function
 if [ $func == "dims" ]
 then 
-	echo "Number of arguments entered: $numArg"
-	echo "Entered function: dims"
 	# Confirm only one argument is entered
 	if [ $# -eq 2 ]
 	then
-		echo "valid # of arguments"
+#		echo "valid # of arguments"
 		matrix1=$2
 		# confirm matrix argument is readable
 		if [ -r $matrix1 ]
 		then
-			dimensions matrix1
+			dims matrix1
 			exit 0
 		else
-			echo "Unable to read file $matrix1" 1>&2
-			exit 1
+			error "input not readable"
 		fi
 	else
-		echo "Invalid # of arguments" 1>&2
-		exit 1
+		error "Invalid # of arguments"
 	fi
 
 ###############################
@@ -119,6 +115,6 @@ then
 ###############################
 # If not one of the known functions print error
 else
-	echo "Unknown function" 1>&2
+	error "Unknown function"
 	exit 1
 fi
