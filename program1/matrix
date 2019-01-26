@@ -1,5 +1,16 @@
 #!/bin/bash
 ############################################
+# Script - matrix
+# Author - Joel Huffman
+# Last updated - 1/26/2019
+# Decsription - Script can calculate mean, 
+# dimensions and transpose single matrices.
+# Able to calculate the sum or product of 
+# any two given matrices.
+# Sources - p1gradingscript
+############################################
+
+############################################
 # error - prints the string argument/error,
 # sends stdout to stderr and exits 1
 ############################################
@@ -23,7 +34,7 @@ dims() {
 	done <$datafilepath
 
 	#count columns
-	col=$(head -n 1 $1 | wc -w)
+	col=$(tail -1 $1 | wc -w)
 
 	#  print results
 	echo "$row $col"
@@ -64,12 +75,16 @@ multiply() {
 	echo "multiply"
 }
 
+# Create temp files
+datafilepath="datafile$$"
+
+# remove temp files when done
+trap "rm -rf $datafilepath; trap - EXIT" INT HUP TERM EXIT
 
 # Check if function requiring a single matrix
 if [ $1 == "dims" ] || [ $1 == "mean" ] || [ $1 == "transpose" ]
 then 
 	# accept matrix through stdin or as file
-	datafilepath="datafile$$"
 	if [ $# -eq 1 ]
 	then
 		cat > "$datafilepath"
