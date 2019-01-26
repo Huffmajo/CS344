@@ -46,7 +46,20 @@ dims() {
 # and prints the transpose of that matrix.
 ############################################
 transpose() {
-	echo "transpose"
+	#clear temp file
+	> temprow
+
+	# get number of columns
+	col=$(($(tail -1 $1 | wc -w)+1))
+	
+	# for each column 
+	for ((i=1; i<col; i++))
+	do
+		cut -f"$i" $1 | paste -s >> temprow
+	done
+	
+	cat temprow
+	exit 0
 }
 
 ############################################
@@ -77,6 +90,7 @@ multiply() {
 
 # Create temp files
 datafilepath="datafile$$"
+temprow="temprow$$"
 
 # remove temp files when done
 trap "rm -rf $datafilepath; trap - EXIT" INT HUP TERM EXIT
@@ -95,17 +109,25 @@ then
 		error "Invalid number of arguments"
 	fi
 
-	# run dims function
-	if [ $1 == "dims" ]
+	# confirm matrix file is readable
+	if [ -r $datafilepath ]
 	then
-		# confirm matrix is readable
-		if [ -r $datafilepath ]
+		# run dims function
+		if [ $1 == "dims" ]
 		then
 			dims $datafilepath
 			exit 0
-		else
-			error "input matrix not readable"
+		elif [ $1 == "transpose" ]
+		then
+			transpose $datafilepath
+			exit 0
+		elif [ $1 == "mean" ]
+		then
+			mean $datafilepath
+			exit 0
 		fi
+	else
+		error "input matrix not readable"
 	fi
 
 # Check for add function
