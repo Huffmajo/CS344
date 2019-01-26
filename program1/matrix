@@ -15,15 +15,17 @@ error() {
 dims() {
 	row=0
 	col=0
-		while read myLine
+	
+	# count rows
+	while read datafilepath
 	do
-		col=0
-		row=`expr $row + 1`
-		for i in $myLine
-		do
-			col=`expr $col + 1`
-		done
-	done<$matrix1
+		row=$((row + 1))
+	done <$datafilepath
+
+	#count columns
+	col=$(head -n 1 $1 | wc -w)
+
+	#  print results
 	echo "$row $col"
 	exit 0
 }
@@ -62,57 +64,45 @@ multiply() {
 	echo "multiply"
 }
 
-# Read first argument to determine what function to run
-func=$1
-numArg=$#
-#echo "First arguement: $func"
 
-################################
-# Check for dims function
-if [ $func == "dims" ]
+# Check if function requiring a single matrix
+if [ $1 == "dims" ] || [ $1 == "mean" ] || [ $1 == "transpose" ]
 then 
-	# Confirm only one argument is entered
-	if [ $# -eq 2 ]
+	# accept matrix through stdin or as file
+	datafilepath="datafile$$"
+	if [ $# -eq 1 ]
 	then
-#		echo "valid # of arguments"
-		matrix1=$2
-		# confirm matrix argument is readable
-		if [ -r $matrix1 ]
-		then
-			dims matrix1
-			exit 0
-		else
-			error "input not readable"
-		fi
+		cat > "$datafilepath"
+	elif [ $# -eq 2 ]
+	then
+		datafilepath=$2
 	else
-		error "Invalid # of arguments"
+		error "Invalid number of arguments"
 	fi
 
-###############################
-# Check for mean function
-elif [ $func == "mean" ]
-then
-	echo "Entered function: mean"
+	# run dims function
+	if [ $1 == "dims" ]
+	then
+		# confirm matrix is readable
+		if [ -r $datafilepath ]
+		then
+			dims $datafilepath
+			exit 0
+		else
+			error "input matrix not readable"
+		fi
+	fi
 
-###############################
-# Check for transpose function
-elif [ $func == "transpose" ]
-then
-	echo "Entered function: transpose"
-
-###############################
 # Check for add function
-elif [ $func == "add" ]
+elif [ $1 == "add" ]
 then
 	echo "Entered function: add"
 
-###############################
 # Check for multiply function
-elif [ $func == "multiply" ]
+elif [ $1 == "multiply" ]
 then
 	echo "Entered function: multiply"
 
-###############################
 # If not one of the known functions print error
 else
 	error "Unknown function"
