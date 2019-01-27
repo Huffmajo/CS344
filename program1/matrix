@@ -8,8 +8,9 @@
 # Able to calculate the sum or product of 
 # any two given matrices.
 # Sources - p1gradingscript
+# https://ss64.com/bash/#
 # https://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
-# https://unix.stackexchange.com/questions/205788/throw-away-standard-output-and-error
+# https://stackoverflow.com/questions/33047996/read-3-output-lines-into-3-variables-in-bash
 ############################################
 
 ############################################
@@ -38,9 +39,6 @@ dims() {
 	#count columns
 	col=$(tail -1 $1 | wc -w)
 
-	# write row and col to temp dims file
-	echo "$row $col" >> tempdims$$
-
 	#  print results
 	echo "$row $col"
 }
@@ -50,20 +48,17 @@ dims() {
 # and prints the transpose of that matrix.
 ############################################
 transpose() {
-
-	# create or clear temp file
-	> temptrans$$
-
-	# get number of columns
+	# get number of columns + 1
 	col=$(($(tail -1 $1 | wc -w)+1))
 	
 	# for each column 
 	for ((i=1; i<col; i++))
 	do
-		cut -f"$i" $1 | paste -s >> temptrans
+		# cut column and paste in temp file as row
+		cut -f"$i" $1 | paste -s >> temptrans$$
 	done
 	
-	cat temptrans
+	cat temptrans$$
 }
 
 ############################################
@@ -71,32 +66,25 @@ transpose() {
 # prints the mean of each columns numbers.
 ############################################
 mean() {
-	# create or clear temp file
-	> tempmeanflip$$
-	> tempmean$$
-
-	# get number of columns
-	col=$(tail -1 $1 | wc -w)
-	
 	# transpose matrix for easier reading
 	transpose $1 > tempmeanflip$$
 
-	# read each line  
+	# read each "column"
 	while read colasrow
 	do
 		num=0
 		sum=0
 		avg=0
 		
-		# get "column" sum and number quantity
+		# get quantity of numbers and total sum from "column"
 		for i in $colasrow
 		do
 			sum=$((sum + i))
 			num=$((num + 1))
 		done
 
-		# get average with provided equation
-		avg=$(((sum + (num/2) * ((sum>0) * 2 - 1)) / num))
+		# get average for "column" with provided equation
+		avg=$((($sum + (num/2) * ((sum>0) * 2 - 1)) / num))
 
 		# append avg to temp file
 		printf "%s\t" "$avg" >> tempmean$$
@@ -130,7 +118,7 @@ multiply() {
 }
 
 # delete temp files when done
-trap "rm -rf $datafilepath temptrans; rm -f data* tempdims* temptrans* tempmean*; trap - EXIT" INT HUP TERM EXIT
+trap "rm -rf $datafilepath; rm -f data* tempdims* temptrans* tempmean* tempcheck*; trap - EXIT" INT HUP TERM EXIT
 
 # Check if function requiring a single matrix
 if [ $1 == "dims" ] || [ $1 == "mean" ] || [ $1 == "transpose" ]
@@ -182,25 +170,13 @@ then
 			# check to run add function
 			if [ $1 == "add" ]
 			then
-				###################################
-				#CODE IN PROGRESS
+				# get dimensions of matrices
+				dims $2 > tempcheck$$
+				dims $3 >> tempcheck$$
 				
-				echo "pre dims 1 read"
-
-				dims $2 &> /dev/null
-				mat1dims="$(head -1 tempdims$$)"
-
-				echo "post dims 1 read, pre dims 2 read"
+				# copy dims to comparable variables
+				{ read -r mat1dims; read -r mat2dims; } < <(cat tempcheck$$)
 				
-				dims $3 &> /dev/null
-				mat2dims="$(head -1 tempdims$$)"
-				
-				echo "after dims 2 read"
-				echo "mat1: $mat1dims"
-				echo "mat2: $mat2dims"
-
-				######################################
-
 				# compare dimensions to determine if able to add
 				if [ "$mat1dims" == "$mat2dims" ]
 				then
@@ -211,10 +187,21 @@ then
 			# check to run multiply function
 			elif [ $1 == "multiply" ]
 			then
-				echo "need to write matrix size check for multiply here :)"
-				#
-				# NEED IF STATEMENT HERE TO CHECK IF MATRIX DIMENSIONS ARE COMPATIBLE
-				#
+				# get number of columns in first matrix
+			 	dims $2 | cut -c 3 > tempcheck$$
+				read mat1cols < tempcheck$$
+
+				# get number of rows in second matrix
+				dims $3 | cut -c 1 > tempcheck$$
+				read mat2rows < tempcheck$$
+				
+				# compare matrix 1's columns to matrix 2's rows
+				if [ "$mat1cols" == "$mat2rows" ]
+				then
+					multiply 2$ 3$
+				else
+					error "Matrix dimensions are not compatible for multiplication"
+				fi
 			else
 				error "Something has gone wrong"
 			fi
