@@ -9,7 +9,7 @@
 # any two given matrices.
 # Sources - p1gradingscript
 # https://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
-# 
+# https://unix.stackexchange.com/questions/205788/throw-away-standard-output-and-error
 ############################################
 
 ############################################
@@ -33,14 +33,16 @@ dims() {
 	while read datafilepath
 	do
 		row=$((row + 1))
-	done <$datafilepath
+	done <$1
 
 	#count columns
 	col=$(tail -1 $1 | wc -w)
 
+	# write row and col to temp dims file
+	echo "$row $col" >> tempdims$$
+
 	#  print results
 	echo "$row $col"
-	exit 0
 }
 
 ############################################
@@ -48,8 +50,9 @@ dims() {
 # and prints the transpose of that matrix.
 ############################################
 transpose() {
-	#clear temp file
-	> temptrans
+
+	# create or clear temp file
+	> temptrans$$
 
 	# get number of columns
 	col=$(($(tail -1 $1 | wc -w)+1))
@@ -61,7 +64,6 @@ transpose() {
 	done
 	
 	cat temptrans
-	exit 0
 }
 
 ############################################
@@ -69,12 +71,44 @@ transpose() {
 # prints the mean of each columns numbers.
 ############################################
 mean() {
-	# clear temp file
-	> tempmean
-	> tempavg
+	# create or clear temp file
+	> tempmeanflip$$
+	> tempmean$$
 
-	transpose $1 > $tempmean
-	exit 0 
+	# get number of columns
+	col=$(tail -1 $1 | wc -w)
+	
+	# transpose matrix for easier reading
+	transpose $1 > tempmeanflip$$
+
+	# read each line  
+	while read colasrow
+	do
+		num=0
+		sum=0
+		avg=0
+		
+		# get "column" sum and number quantity
+		for i in $colasrow
+		do
+			sum=$((sum + i))
+			num=$((num + 1))
+		done
+
+		# get average with provided equation
+		avg=$(((sum + (num/2) * ((sum>0) * 2 - 1)) / num))
+
+		# append avg to temp file
+		printf "%s\t" "$avg" >> tempmean$$
+
+	done < tempmeanflip$$
+
+	# remove last tab from temp file
+	truncate -s-1 tempmean$$
+
+	# print row of mean values
+	cat tempmean$$
+	echo
 }
 
 ############################################
@@ -84,7 +118,6 @@ mean() {
 ############################################
 add() {
 	echo "add"
-	exit 0
 }
 
 ############################################
@@ -94,24 +127,16 @@ add() {
 ############################################
 multiply() {
 	echo "multiply"
-	exit 0
 }
 
-# Create temp files
-datafilepath="datafile$$"
-temptrans="temptrans$$"
-tempmean="tempmean$$"
-tempavg="tempavg$$"
-#tempaddcheck1="tempaddcheck1$$"
-#tempaddcheck2="tempaddcheck2$$"
-
-# remove temp files when done
-trap "rm -rf $datafilepath temptrans tempmean tempavg; rm -f tempmean*; trap - EXIT" INT HUP TERM EXIT
+# delete temp files when done
+trap "rm -rf $datafilepath temptrans; rm -f data* tempdims* temptrans* tempmean*; trap - EXIT" INT HUP TERM EXIT
 
 # Check if function requiring a single matrix
 if [ $1 == "dims" ] || [ $1 == "mean" ] || [ $1 == "transpose" ]
 then 
 	# accept matrix through stdin or as file
+	datafilepath="datafile$$"
 	if [ $# -eq 1 ]
 	then
 		cat > "$datafilepath"
@@ -157,10 +182,27 @@ then
 			# check to run add function
 			if [ $1 == "add" ]
 			then
-				# check if matrices are same size
-				# NEEDS CODE HERE
-				#
-				if [ "$str1" == "$str2" ]
+				###################################
+				#CODE IN PROGRESS
+				
+				echo "pre dims 1 read"
+
+				dims $2 &> /dev/null
+				mat1dims="$(head -1 tempdims$$)"
+
+				echo "post dims 1 read, pre dims 2 read"
+				
+				dims $3 &> /dev/null
+				mat2dims="$(head -1 tempdims$$)"
+				
+				echo "after dims 2 read"
+				echo "mat1: $mat1dims"
+				echo "mat2: $mat2dims"
+
+				######################################
+
+				# compare dimensions to determine if able to add
+				if [ "$mat1dims" == "$mat2dims" ]
 				then
 					add $2 $3
 				else
