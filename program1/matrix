@@ -3,11 +3,13 @@
 # Script - matrix
 # Author - Joel Huffman
 # Last updated - 1/26/2019
-# Decsription - Script can calculate mean, 
+# Description - Script can calculate mean, 
 # dimensions and transpose single matrices.
 # Able to calculate the sum or product of 
 # any two given matrices.
 # Sources - p1gradingscript
+# https://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
+# 
 ############################################
 
 ############################################
@@ -47,7 +49,7 @@ dims() {
 ############################################
 transpose() {
 	#clear temp file
-	> temprow
+	> temptrans
 
 	# get number of columns
 	col=$(($(tail -1 $1 | wc -w)+1))
@@ -55,10 +57,10 @@ transpose() {
 	# for each column 
 	for ((i=1; i<col; i++))
 	do
-		cut -f"$i" $1 | paste -s >> temprow
+		cut -f"$i" $1 | paste -s >> temptrans
 	done
 	
-	cat temprow
+	cat temptrans
 	exit 0
 }
 
@@ -67,7 +69,12 @@ transpose() {
 # prints the mean of each columns numbers.
 ############################################
 mean() {
-	echo "mean"
+	# clear temp file
+	> tempmean
+	> tempavg
+
+	transpose $1 > $tempmean
+	exit 0 
 }
 
 ############################################
@@ -77,6 +84,7 @@ mean() {
 ############################################
 add() {
 	echo "add"
+	exit 0
 }
 
 ############################################
@@ -86,14 +94,19 @@ add() {
 ############################################
 multiply() {
 	echo "multiply"
+	exit 0
 }
 
 # Create temp files
 datafilepath="datafile$$"
-temprow="temprow$$"
+temptrans="temptrans$$"
+tempmean="tempmean$$"
+tempavg="tempavg$$"
+#tempaddcheck1="tempaddcheck1$$"
+#tempaddcheck2="tempaddcheck2$$"
 
 # remove temp files when done
-trap "rm -rf $datafilepath; trap - EXIT" INT HUP TERM EXIT
+trap "rm -rf $datafilepath temptrans tempmean tempavg; rm -f tempmean*; trap - EXIT" INT HUP TERM EXIT
 
 # Check if function requiring a single matrix
 if [ $1 == "dims" ] || [ $1 == "mean" ] || [ $1 == "transpose" ]
@@ -116,29 +129,59 @@ then
 		if [ $1 == "dims" ]
 		then
 			dims $datafilepath
-			exit 0
+		# or run transpose function
 		elif [ $1 == "transpose" ]
 		then
 			transpose $datafilepath
-			exit 0
+		# or run mean function
 		elif [ $1 == "mean" ]
 		then
 			mean $datafilepath
-			exit 0
+		# or something has gone terribly wrong
+		else
+			error "Something went wrong"
 		fi
 	else
 		error "input matrix not readable"
 	fi
 
-# Check for add function
-elif [ $1 == "add" ]
+# Check for functions requiring 2 matrices
+elif [ $1 == "add" ] || [ $1 == "multiply" ]
 then
-	echo "Entered function: add"
-
-# Check for multiply function
-elif [ $1 == "multiply" ]
-then
-	echo "Entered function: multiply"
+	#check if valid number of arguments
+	if [ $# -eq 3 ]
+	then
+		# check both matrices are readable
+		if [ -r $2 ] && [ -r $3 ]
+		then
+			# check to run add function
+			if [ $1 == "add" ]
+			then
+				# check if matrices are same size
+				# NEEDS CODE HERE
+				#
+				if [ "$str1" == "$str2" ]
+				then
+					add $2 $3
+				else
+					error "Matrices are of differing sizes and cannot be added"
+				fi
+			# check to run multiply function
+			elif [ $1 == "multiply" ]
+			then
+				echo "need to write matrix size check for multiply here :)"
+				#
+				# NEED IF STATEMENT HERE TO CHECK IF MATRIX DIMENSIONS ARE COMPATIBLE
+				#
+			else
+				error "Something has gone wrong"
+			fi
+		else
+			error "One or more files unable to be read"
+		fi
+	else
+		error "Invalid number of arguments"
+	fi
 
 # If not one of the known functions print error
 else
