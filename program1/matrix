@@ -206,11 +206,8 @@ then
 			if [ $1 == "add" ]
 			then
 				# get dimensions of matrices
-				dims $2 > tempcheck$$
-				dims $3 >> tempcheck$$
-				
-				# copy dims to comparable variables
-				{ read -r mat1dims; read -r mat2dims; } < <(cat tempcheck$$)
+				mat1dims=$(dims $2)
+				mat2dims=$(dims $3)
 				
 				# compare dimensions to determine if able to add
 				if [ "$mat1dims" == "$mat2dims" ]
@@ -222,13 +219,15 @@ then
 			# check to run multiply function
 			elif [ $1 == "multiply" ]
 			then
-				# get number of columns in first matrix
-			 	dims $2 | cut -c 3 > tempcheck$$
-				read mat1cols < tempcheck$$
+				# get first matrix dimensions in individual variables
+			 	mat1all=$(dims $2)
+				mat1rows=$(echo $mat1all | cut -c 1)
+				mat1cols=$(echo $mat1all | cut -c 3)
 
-				# get number of rows in second matrix
-				dims $3 | cut -c 1 > tempcheck$$
-				read mat2rows < tempcheck$$
+				# get second matrix dimensions in individual variables
+			 	mat2all=$(dims $3)
+				mat2rows=$(echo $mat2all | cut -c 1)
+				mat2cols=$(echo $mat2all | cut -c 3)
 				
 				# compare matrix 1's columns to matrix 2's rows
 				if [ "$mat1cols" == "$mat2rows" ]
