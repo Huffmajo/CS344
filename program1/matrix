@@ -36,10 +36,10 @@ dims() {
 		row=$((row + 1))
 	done <$1
 
-	#count columns
+	# count columns
 	col=$(tail -1 $1 | wc -w)
 
-	#  print results
+	# print results
 	echo "$row $col"
 }
 
@@ -105,7 +105,42 @@ mean() {
 # they print out the summed matrix.
 ############################################
 add() {
-	echo "add"
+	# count total columns and track current column
+	col=$(tail -1 $1 | wc -w)
+	currcol=2
+
+	# convert each matrix into a column for easy reading
+	cat $1 | tr "\t" "\n" > tempmat1col$$
+	cat $2 | tr "\t" "\n" > tempmat2col$$
+ 
+	# read through both matrix columns simultaneously
+	while read mat1 <&3 && read mat2 <&4
+	do
+		# append sum to temp file
+		val=$((mat1 + mat2))
+		printf "%s" $val >> tempadd$$
+
+		# format resultant matrix in correct dimensions
+		if [ $currcol -gt $col ]
+		then
+			printf "\n" >> tempadd$$			
+
+			#reset current column for next line
+			currcol=1
+		else
+			printf "\t" >> tempadd$$
+		fi
+
+		# iterate current column
+		currcol=$((currcol + 1))
+	done 3<tempmat1col$$ 4<tempmat2col$$
+	
+	# remove last tab from temp file
+	truncate -s-1 tempadd$$
+
+	# print result
+	cat tempadd$$
+	echo
 }
 
 ############################################
@@ -118,7 +153,7 @@ multiply() {
 }
 
 # delete temp files when done
-trap "rm -rf $datafilepath; rm -f data* tempdims* temptrans* tempmean* tempcheck*; trap - EXIT" INT HUP TERM EXIT
+trap "rm -rf $datafilepath; rm -f data* tempdims* temptrans* tempmean* tempcheck* tempadd* tempmat*; trap - EXIT" INT HUP TERM EXIT
 
 # Check if function requiring a single matrix
 if [ $1 == "dims" ] || [ $1 == "mean" ] || [ $1 == "transpose" ]
