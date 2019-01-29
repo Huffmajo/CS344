@@ -2,7 +2,7 @@
 ############################################
 # Script - matrix
 # Author - Joel Huffman
-# Last updated - 1/26/2019
+# Last updated - 1/28/2019
 # Description - Script can calculate mean, 
 # dimensions and transpose single matrices.
 # Able to calculate the sum or product of 
@@ -11,6 +11,8 @@
 # https://ss64.com/bash/#
 # https://www.thelinuxrain.com/articles/transposing-rows-and-columns-3-methods
 # https://stackoverflow.com/questions/33047996/read-3-output-lines-into-3-variables-in-bash
+# https://osu-cs.slack.com
+# https://piazza.com/class/jqheoh1h3kl11a
 ############################################
 
 ############################################
@@ -37,7 +39,11 @@ dims() {
 	done <$1
 
 	# count columns
-	col=$(tail -1 $1 | wc -w)
+	read myline < $1
+	for i in $myline
+	do
+		col=$((col + 1))
+	done
 
 	# print results
 	echo "$row $col"
@@ -49,15 +55,17 @@ dims() {
 ############################################
 transpose() {
 	# get number of columns + 1
-	col=$(($(tail -1 $1 | wc -w)+1))
-	
+	transdims=$(dims $1) 
+	col=$(($(echo $transdims | cut -d " " -f 2) + 1))
+
 	# for each column 
 	for ((i=1; i<col; i++))
 	do
 		# cut column and paste in temp file as row
-		cut -f"$i" $1 | paste -s >> temptrans$$
+		cut -f"$i" "$1" | paste -s >> temptrans$$
 	done
 	
+	# print flipped matrix
 	cat temptrans$$
 }
 
@@ -74,8 +82,6 @@ mean() {
 	do
 		num=0
 		sum=0
-		avg=0
-		
 		# get quantity of numbers and total sum from "column"
 		for i in $colasrow
 		do
@@ -83,6 +89,7 @@ mean() {
 			num=$((num + 1))
 		done
 
+		avg=0
 		# get average for "column" with provided equation
 		avg=$((($sum + (num/2) * ((sum>0) * 2 - 1)) / num))
 
@@ -106,7 +113,8 @@ mean() {
 ############################################
 add() {
 	# count total columns and track current column
-	col=$(tail -1 $1 | wc -w)
+	adddims=$(dims $1) 
+	col=$(echo $adddims | cut -d " " -f 2)
 	currcol=2
 
 	# convert each matrix into a column for easy reading
@@ -154,14 +162,15 @@ multiply() {
 	currcol=1
 	currrow=0
 	
-	# put each line for both matrices in their own array
+	# read every row of matrix 1 as an array
 	while read -a mat1line
 	do
 		currrow=$((currrow + 1))
-		# read every mat2 line for each mat1 line
+		# read column (as a row) of matrix 2 as an array
 		while read -a mat2line
 		do
 			product=0
+			# calculate dot product for each element in row array
 			for ((i=0; i<mat1cols; i++))
 			do
 				work=$(( mat1line[i] * mat2line[i] ))
@@ -178,14 +187,13 @@ multiply() {
 				printf "%s\t" $product
 			fi	
 		done <tempmulttrans$$
-	
 	done <$1
-	exit 0
 }
 
 # delete temp files when done
 trap "rm -rf $datafilepath; rm -f data* temp*; trap - EXIT" INT HUP TERM EXIT
 
+# Main work flow
 # Check if function requiring a single matrix
 if [ $1 == "dims" ] || [ $1 == "mean" ] || [ $1 == "transpose" ]
 then 
@@ -282,3 +290,4 @@ else
 	error "Unknown function"
 	exit 1
 fi
+exit 0
