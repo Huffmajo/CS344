@@ -184,7 +184,7 @@ multiply() {
 }
 
 # delete temp files when done
-trap "rm -rf $datafilepath; rm -f data* tempdims* temptrans* tempmean* tempcheck* tempadd* tempmat* tempmult*; trap - EXIT" INT HUP TERM EXIT
+trap "rm -rf $datafilepath; rm -f data* temp*; trap - EXIT" INT HUP TERM EXIT
 
 # Check if function requiring a single matrix
 if [ $1 == "dims" ] || [ $1 == "mean" ] || [ $1 == "transpose" ]
@@ -228,7 +228,7 @@ then
 elif [ $1 == "add" ] || [ $1 == "multiply" ]
 then
 	#check if valid number of arguments
-	if [ $# -eq 3 ]
+	if [ $# == 3 ]
 	then
 		# check both matrices are readable
 		if [ -r $2 ] && [ -r $3 ]
@@ -252,13 +252,13 @@ then
 			then
 				# get first matrix dimensions in individual variables
 			 	mat1all=$(dims $2)
-				mat1rows=$(echo $mat1all | cut -c 1)
-				mat1cols=$(echo $mat1all | cut -c 3)
+				mat1rows=$(echo $mat1all | cut -d " " -f 1)
+				mat1cols=$(echo $mat1all | cut -d " " -f 2)
 
 				# get second matrix dimensions in individual variables
 			 	mat2all=$(dims $3)
-				mat2rows=$(echo $mat2all | cut -c 1)
-				mat2cols=$(echo $mat2all | cut -c 3)
+				mat2rows=$(echo $mat2all | cut -d " " -f 1)
+				mat2cols=$(echo $mat2all | cut -d " " -f 2)
 				
 				# compare matrix 1's columns to matrix 2's rows
 				if [ "$mat1cols" == "$mat2rows" ]
