@@ -15,7 +15,7 @@
 #define TOTAL_ROOMS 10
 #define NUM_ROOMS 7
 #define ROOM_TYPES 3
-#define MIN LINKS 3
+#define MIN_LINKS 3
 #define MAX_LINKS 6
 
 // define some room necessities
@@ -69,8 +69,7 @@ void CreateRoomsDir ()
 /***********************************************************
  * Function: ChooseRooms()
  * Selects 7 room names at random from the set of 10 created.
- * Creates a room struct for each and popualtes with the 
- * name. The first 
+ * Initializes rooms with 0 linked rooms, names and types.
  ***********************************************************/
 void ChooseRooms ()
 {
@@ -111,7 +110,115 @@ void ChooseRooms ()
 	}
 }
 
+/***********************************************************
+ * Function: IsGraphFull()
+ * Checks if all the rooms have the minimum number of links
+ * to other rooms. Returns 1 if this is that case, 0 if 
+ * otherwise.
+ ***********************************************************/
+int IsGraphFull()
+{
+	int i;
+	for (i=0; i<NUM_ROOMS; i++)
+	{
+		if (chosenrooms[i].numlinks < MIN_LINKS)
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
 
+/***********************************************************
+ * Function: GetRandomRoom()
+ * Returns a random room, does not validate if link is valid.
+ ***********************************************************/
+struct room GetRandomRoom()
+{
+
+}
+
+/***********************************************************
+ * Function: CanAddConnectionFrom(r) 
+ * Checks if room r can handle another link. Returns 1 if
+ *  possible, 0 if link limit is already reached.
+ ***********************************************************/
+int CanAddConnectionFrom(struct room* r)
+{
+	if (r->numlinks > MAX_LINKS)
+		return 0;
+	else
+		return 1;
+}
+
+/***********************************************************
+ * Function: ConnectionAlreadyExists(a, b)
+ * Checks if rooms a and b are already connected. If so, 
+ * returns 1, else returns 0.
+ ***********************************************************/
+int ConnectionAlreadyExists(struct room* a, struct room* b)
+{
+	int i;
+	for (i=0; i<a->numlinks; i++)
+	{
+		if (strcmp(a->link[i]->name, b->name) == 0)
+			return 1;
+	}
+	return 0;
+}
+
+/***********************************************************
+ * Function: ConnectRoom(a, b)
+ * Connects room a to room b and room b to room a.
+ ***********************************************************/
+void ConnectRoom(struct room* a, struct room* b)
+{
+	a->link[a->numlinks] = b;
+	a->numlinks++;
+	b->link[b->numlinks] = a;
+	b->numlinks++;
+}
+
+/***********************************************************
+ * Function: IsSameRoom(a, b)
+ * Checks if a and b are the same room. Returns 1 if so, 0
+ * otherwise.
+ ***********************************************************/
+int IsSameRoom(struct room* a, struct room* b)
+{
+	if (strcmp(a->name, b->name) == 0)
+		return 1;
+	else
+		return 0;
+}
+
+/***********************************************************
+ * Function: AddRandomConnection()
+ * Adds a random, valid connection from one room to another.
+ ***********************************************************/
+void AddRandomConnection() 
+{
+	//***NEED TO FINISH THIS FUNCTION
+}
+
+/***********************************************************
+ * Function: LinkRooms()
+ * Randomly links rooms to one another until all rooms are 
+ * sufficiently paired.
+ ***********************************************************/
+void LinkRooms() {
+	while (IsGraphFull() == 0)
+	{
+		AddRandomConnection();
+	}
+	
+}
+
+/***********************************************************
+ * Function: FreeAtLast()
+ * Frees all previously allocated memory to prevnet memory
+ * Leaks. Also honors the late, great MLK Jr.
+ ***********************************************************/
 void FreeAtLast()
 {
 	// free room names and types
@@ -135,7 +242,7 @@ int main ()
 	// Create and assign random rooms
 	ChooseRooms();
 	
-	// Links chosen rooms randomly
+	// Link chosen rooms randomly
 
 	// generate room files
 
