@@ -129,23 +129,29 @@ int IsGraphFull()
 	return 1;
 }
 
+
+
 /***********************************************************
  * Function: GetRandomRoom()
  * Returns a random room, does not validate if link is valid.
  ***********************************************************/
-struct room GetRandomRoom()
+/*
+struct room* GetRandomRoom()
 {
-
+	int randnum = rand() % NUM_ROOMS;
+	struct room* randroom = &chosenrooms[randnum];
+	return randroom;
 }
+*/
 
 /***********************************************************
  * Function: CanAddConnectionFrom(r) 
  * Checks if room r can handle another link. Returns 1 if
  *  possible, 0 if link limit is already reached.
  ***********************************************************/
-int CanAddConnectionFrom(struct room* r)
+int CanAddConnectionFrom(int n)
 {
-	if (r->numlinks > MAX_LINKS)
+	if (chosenrooms[n].numlinks >= MAX_LINKS)
 		return 0;
 	else
 		return 1;
@@ -156,13 +162,21 @@ int CanAddConnectionFrom(struct room* r)
  * Checks if rooms a and b are already connected. If so, 
  * returns 1, else returns 0.
  ***********************************************************/
-int ConnectionAlreadyExists(struct room* a, struct room* b)
+int ConnectionAlreadyExists(int a, int b)
 {
-	int i;
-	for (i=0; i<a->numlinks; i++)
+	// check for no links
+	if (a == 0 || b == 0)
 	{
-		if (strcmp(a->link[i]->name, b->name) == 0)
+		return 0;
+	}
+
+	int i;
+	for (i=0; i<(chosenrooms[a].numlinks); i++)
+	{
+		if (strcmp(chosenrooms[a].link[i]->name, chosenrooms[b].name) == 0)
+		{
 			return 1;
+		}
 	}
 	return 0;
 }
@@ -171,12 +185,12 @@ int ConnectionAlreadyExists(struct room* a, struct room* b)
  * Function: ConnectRoom(a, b)
  * Connects room a to room b and room b to room a.
  ***********************************************************/
-void ConnectRoom(struct room* a, struct room* b)
+void ConnectRoom(int a, int b)
 {
-	a->link[a->numlinks] = b;
-	a->numlinks++;
-	b->link[b->numlinks] = a;
-	b->numlinks++;
+	chosenrooms[a].link[chosenrooms[a].numlinks] = &chosenrooms[b];
+	chosenrooms[a].numlinks++;
+	chosenrooms[b].link[chosenrooms[b].numlinks] = &chosenrooms[a];
+	chosenrooms[b].numlinks++;
 }
 
 /***********************************************************
@@ -184,9 +198,9 @@ void ConnectRoom(struct room* a, struct room* b)
  * Checks if a and b are the same room. Returns 1 if so, 0
  * otherwise.
  ***********************************************************/
-int IsSameRoom(struct room* a, struct room* b)
+int IsSameRoom(int a, int b)
 {
-	if (strcmp(a->name, b->name) == 0)
+	if (strcmp(chosenrooms[a].name, chosenrooms[b].name) == 0)
 		return 1;
 	else
 		return 0;
@@ -198,7 +212,27 @@ int IsSameRoom(struct room* a, struct room* b)
  ***********************************************************/
 void AddRandomConnection() 
 {
-	//***NEED TO FINISH THIS FUNCTION
+	int a;
+	int b;
+
+	while (1)
+	{
+		a = rand() % NUM_ROOMS;
+		
+		if (CanAddConnectionFrom(a) == 1)
+		{
+			break;
+		}
+	}
+
+	do 
+	{
+		b = rand() % NUM_ROOMS;
+	}
+	while (CanAddConnectionFrom(b) == 0 || IsSameRoom(a, b) == 1 || ConnectionAlreadyExists(a, b) == 1);
+
+	ConnectRoom(a, b);
+	ConnectRoom(b, a);
 }
 
 /***********************************************************
@@ -234,7 +268,7 @@ void FreeAtLast()
 int main ()
 {
 	// seed randomization
-	srand(time(NULL));
+	srand(time(0));
 
 	// create dir for room files
 	CreateRoomsDir();
@@ -243,6 +277,22 @@ int main ()
 	ChooseRooms();
 	
 	// Link chosen rooms randomly
+	LinkRooms();
+
+	// Test print
+	int i;
+	for (i=0; i<NUM_ROOMS; i++)
+	{
+		printf("ROOM NAME: %s\n", chosenrooms[i].name);
+
+		int j;
+		for (j=0; j<chosenrooms[i].numlinks; j++)
+		{
+			printf("CONNECTION %d: %s\n", (j + 1), chosenrooms[i].link[j]->name);
+		}	
+		
+		printf("ROOM TYPE: %s\n\n", chosenrooms[i].type);
+	}
 
 	// generate room files
 
