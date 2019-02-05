@@ -165,7 +165,7 @@ int CanAddConnectionFrom(int n)
 int ConnectionAlreadyExists(int a, int b)
 {
 	// check for no links
-	if (a == 0 || b == 0)
+	if (chosenrooms[a].numlinks == 0 || chosenrooms[b].numlinks == 0)
 	{
 		return 0;
 	}
@@ -189,8 +189,6 @@ void ConnectRoom(int a, int b)
 {
 	chosenrooms[a].link[chosenrooms[a].numlinks] = &chosenrooms[b];
 	chosenrooms[a].numlinks++;
-	chosenrooms[b].link[chosenrooms[b].numlinks] = &chosenrooms[a];
-	chosenrooms[b].numlinks++;
 }
 
 /***********************************************************
@@ -200,6 +198,7 @@ void ConnectRoom(int a, int b)
  ***********************************************************/
 int IsSameRoom(int a, int b)
 {
+
 	if (strcmp(chosenrooms[a].name, chosenrooms[b].name) == 0)
 		return 1;
 	else
@@ -212,24 +211,18 @@ int IsSameRoom(int a, int b)
  ***********************************************************/
 void AddRandomConnection() 
 {
-	int a;
-	int b;
+	int a = rand() % NUM_ROOMS;
+	int b = rand() % NUM_ROOMS;
 
-	while (1)
+	while (CanAddConnectionFrom(a) == 0)
 	{
 		a = rand() % NUM_ROOMS;
-		
-		if (CanAddConnectionFrom(a) == 1)
-		{
-			break;
-		}
 	}
 
-	do 
+	while (CanAddConnectionFrom(b) == 0 || IsSameRoom(a, b) == 1 || ConnectionAlreadyExists(a, b) == 1)
 	{
 		b = rand() % NUM_ROOMS;
 	}
-	while (CanAddConnectionFrom(b) == 0 || IsSameRoom(a, b) == 1 || ConnectionAlreadyExists(a, b) == 1);
 
 	ConnectRoom(a, b);
 	ConnectRoom(b, a);
