@@ -1,7 +1,7 @@
 /***********************************************************
  * Program: huffmajo.buildrooms.c
  * Author: Joel Huffman
- * Last updated: 2/2/2019
+ * Last updated: 2/5/2019
  * Sources: https://www.geeksforgeeks.org/shuffle-a-given-array-using-fisher-yates-shuffle-algorithm/
  * https://oregonstate.instructure.com/courses/1706555/pages/2-dot-2-program-outlining-in-program-2
  * 
@@ -25,14 +25,17 @@ char* roomnames[TOTAL_ROOMS] = {"RED", "ORANGE", "YELLOW", "GREEN", "BLUE",
 
 struct room
 {
-	int id;
 	char* name;
 	char* type;
 	int numlinks;
 	struct room* link[MAX_LINKS];
 };
 
+// to be populated list of generated rooms
 struct room chosenrooms[NUM_ROOMS];
+
+// global string of to be created directory
+char roomsdir[25];
 
 
 /***********************************************************
@@ -59,8 +62,6 @@ void fisherYatesRand (int arr[], int n)
  ***********************************************************/
 void CreateRoomsDir ()
 {
-	// create directory with current PID
-	char roomsdir[25];
 	memset(roomsdir, '\0', 25);
 	sprintf(roomsdir, "huffmajo.rooms.%d", getpid());
 	mkdir(roomsdir, 0755);
@@ -106,7 +107,7 @@ void ChooseRooms ()
 		}
 
 		//test print
-		printf("%s: %s\n", chosenrooms[i].type, chosenrooms[i].name);
+		//printf("%s: %s\n", chosenrooms[i].type, chosenrooms[i].name);
 	}
 }
 
@@ -129,24 +130,9 @@ int IsGraphFull()
 	return 1;
 }
 
-
-
 /***********************************************************
- * Function: GetRandomRoom()
- * Returns a random room, does not validate if link is valid.
- ***********************************************************/
-/*
-struct room* GetRandomRoom()
-{
-	int randnum = rand() % NUM_ROOMS;
-	struct room* randroom = &chosenrooms[randnum];
-	return randroom;
-}
-*/
-
-/***********************************************************
- * Function: CanAddConnectionFrom(r) 
- * Checks if room r can handle another link. Returns 1 if
+ * Function: CanAddConnectionFrom(n) 
+ * Checks if room at index n can handle another link. Returns 1 if
  *  possible, 0 if link limit is already reached.
  ***********************************************************/
 int CanAddConnectionFrom(int n)
@@ -159,8 +145,8 @@ int CanAddConnectionFrom(int n)
 
 /***********************************************************
  * Function: ConnectionAlreadyExists(a, b)
- * Checks if rooms a and b are already connected. If so, 
- * returns 1, else returns 0.
+ * Checks if rooms at index a and b are already connected. 
+ * If so, returns 1, else returns 0.
  ***********************************************************/
 int ConnectionAlreadyExists(int a, int b)
 {
@@ -183,7 +169,7 @@ int ConnectionAlreadyExists(int a, int b)
 
 /***********************************************************
  * Function: ConnectRoom(a, b)
- * Connects room a to room b and room b to room a.
+ * Connects room indexed at a to room indexed at b.
  ***********************************************************/
 void ConnectRoom(int a, int b)
 {
@@ -193,12 +179,11 @@ void ConnectRoom(int a, int b)
 
 /***********************************************************
  * Function: IsSameRoom(a, b)
- * Checks if a and b are the same room. Returns 1 if so, 0
- * otherwise.
+ * Checks if room indexed at a and room indexed at b are the 
+ * same room. Returns 1 if so, 0 otherwise.
  ***********************************************************/
 int IsSameRoom(int a, int b)
 {
-
 	if (strcmp(chosenrooms[a].name, chosenrooms[b].name) == 0)
 		return 1;
 	else
@@ -242,6 +227,46 @@ void LinkRooms() {
 }
 
 /***********************************************************
+ * Function: WriteRoomFiles()
+ * Creates files for each generated room in the created 
+ * directory. Then writes the name, connections and type for 
+ * each room. 
+ ***********************************************************/
+void WriteRoomFiles()
+{
+	FILE* myfile;
+	int i;
+	for (i=0; i<NUM_ROOMS; i++)
+	{
+		// create string for directory name
+		char filedir[30];
+		memset(filedir, '\0', 30);
+
+		// put new file in created directory
+		sprintf(filedir, "./%s/%s_ROOM", roomsdir, chosenrooms[i].name);
+		myfile = fopen(filedir, "w");
+
+		// write name
+		fprintf(myfile, "ROOM NAME: %s\n", chosenrooms[i].name);
+
+		// write all connected rooms
+		int j;
+		for (j=0; j<chosenrooms[i].numlinks; j++)
+		{
+			fprintf(myfile, "CONNECTION %d: %s\n", (j + 1), chosenrooms[i].link[j]->name);
+		}	
+		
+		// write room type
+		fprintf(myfile, "ROOM TYPE: %s\n", chosenrooms[i].type);
+
+		// close file after everything is added
+		fclose(myfile);
+	}
+
+
+}
+
+/***********************************************************
  * Function: FreeAtLast()
  * Frees all previously allocated memory to prevnet memory
  * Leaks. Also honors the late, great MLK Jr.
@@ -256,7 +281,6 @@ void FreeAtLast()
 		free(chosenrooms[i].type);
 	}
 }
-
 
 int main ()
 {
@@ -273,6 +297,7 @@ int main ()
 	LinkRooms();
 
 	// Test print
+	/*
 	int i;
 	for (i=0; i<NUM_ROOMS; i++)
 	{
@@ -286,8 +311,10 @@ int main ()
 		
 		printf("ROOM TYPE: %s\n\n", chosenrooms[i].type);
 	}
+	*/
 
 	// generate room files
+	WriteRoomFiles();
 
 	// free any allocated memory
 	FreeAtLast();
