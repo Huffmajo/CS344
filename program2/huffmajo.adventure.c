@@ -22,7 +22,7 @@ struct room
 	char* name;
 	char* type;
 	int numlinks;
-	struct room* link[MAX_LINKS];
+	char link[MAX_LINKS][10];
 	char* filename;
 };
 
@@ -96,7 +96,7 @@ void GetFileNames()
 			{
 				chosenrooms[filenum].filename = malloc(20 * sizeof(char));
 				strcpy(chosenrooms[filenum].filename, fileInDir->d_name);
-				printf("File %d: %s\n", filenum, chosenrooms[filenum].filename);
+//				printf("File %d: %s\n", filenum, chosenrooms[filenum].filename);
 				filenum++;
 			}
 		}
@@ -110,9 +110,67 @@ void GetFileNames()
  ***********************************************************/
 void ReadRoomFiles()
 {
+	FILE* myfile;
+	int i;
+	for (i=0; i<NUM_ROOMS; i++)
+	{
+		// string for directory name
+		char filedir[50];
+		memset(filedir, '\0', 50);
 
+		// open room file
+		sprintf(filedir, "./%s/%s", newestDirName, chosenrooms[i].filename);
+		myfile = fopen(filedir, "r");
+
+		// buffer string for reading
+		char buffer[50];
+		memset(buffer, '\0', 50);
+
+		// read file one line at a time
+		while (fgets(buffer, 50, myfile))
+		{
+			char secondread[15];
+			memset(secondread, '\0', 15);
+			char thirdread[15];
+			memset(thirdread, '\0', 15);
+
+			sscanf(buffer, "%*s %s %s", secondread, thirdread);
+
+			// check if second word in line is "NAME:" for room name
+			if (strcmp(secondread, "NAME:") == 0)
+			{
+				strcpy(chosenrooms[i].name, thirdread);
+			}
+
+			// check if second word is "TYPE:" for room type
+			else if (strcmp(secondread, "TYPE:") == 0)
+			{
+				strcpy(chosenrooms[i].type, thirdread);
+			}
+			
+			// must be a connection line
+			else
+			{
+				strcpy(chosenrooms[i].link[chosenrooms[i].numlinks], thirdread);
+				chosenrooms[i].numlinks++;				
+			}			
+
+		}
+
+		// close file when done reading from it
+		fclose(myfile);
+	}
 }
 
+void AllocateMem()
+{
+	int i;
+	for (i=0; i<NUM_ROOMS; i++)
+	{
+		chosenrooms[i].name = malloc(10 * sizeof(char));
+		chosenrooms[i].type = malloc(16 * sizeof(char));
+	}	
+}
 
 /***********************************************************
  * Function: GetRoomData()
@@ -124,11 +182,29 @@ void GetRoomData()
 	// find the latest directory of room files
 	GetLatestDir();
 
+	// allocate memory for chosenroom's attributes
+	AllocateMem();	
+
 	// get filenames for all room files
 	GetFileNames();
 
 	// for each room file, store name, connections and type in chosenrooms array
 	ReadRoomFiles();
+
+
+	// test print
+	int i;
+	for (i=0; i<NUM_ROOMS; i++)
+	{
+		printf("Name: %s\n", chosenrooms[i].name);
+		int j;
+		for (j=0; j<chosenrooms[i].numlinks; j++)
+		{
+			printf("Con: %s\n", chosenrooms[i].link[j]);
+		}
+		printf("Type: %s\n\n", chosenrooms[i].type);
+	}
+
 }
 
 /***********************************************************
@@ -143,8 +219,8 @@ void FreeAtLast()
 	for (i=0; i<NUM_ROOMS; i++)
 	{
 		free(chosenrooms[i].filename);
-//		free(chosenrooms[i].name);
-//		free(chosenrooms[i].type);
+		free(chosenrooms[i].name);
+		free(chosenrooms[i].type);
 	}
 }
 
