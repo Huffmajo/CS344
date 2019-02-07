@@ -162,6 +162,10 @@ void ReadRoomFiles()
 	}
 }
 
+/***********************************************************
+ * Function: AllocateMem()
+ * Malloc's memory to persistent objects that require it.
+ ***********************************************************/
 void AllocateMem()
 {
 	int i;
@@ -193,6 +197,7 @@ void GetRoomData()
 
 
 	// test print
+/*
 	int i;
 	for (i=0; i<NUM_ROOMS; i++)
 	{
@@ -204,7 +209,125 @@ void GetRoomData()
 		}
 		printf("Type: %s\n\n", chosenrooms[i].type);
 	}
+*/
+}
 
+/***********************************************************
+ * Function: RunGame()
+ * Manages all facets of the game including user I/O, victory
+ * case management and positioning.
+ ***********************************************************/
+void RunGame()
+{
+	// establish starting variables
+	int currentpos;
+	int steps = 0;
+	int roomsvisited[256];
+	char buffer[256];
+	memset(buffer, '\0', 256);
+	int pickedroom;
+
+	// start player in the START_ROOM
+	int i;
+	for (i=0; i<NUM_ROOMS; i++)
+	{
+		if (strcmp(chosenrooms[i].type, "START_ROOM") == 0)
+		{
+			currentpos = i;
+			break;
+		}
+	}
+
+	// keep playing until victory condition met
+	while (strcmp(chosenrooms[currentpos].type, "END_ROOM") != 0)
+	{
+		// print current locale and movement options
+		printf("CURRENT LOCATION: %s\n", chosenrooms[currentpos].name);
+		printf("POSSIBLE CONNECTIONS: ");
+		
+		i = 0;
+		for (i=0; i<chosenrooms[currentpos].numlinks; i++)
+		{
+			printf(chosenrooms[currentpos].link[i]);
+			
+			//insert period and newline if last connection
+			if (i == (chosenrooms[currentpos].numlinks -1))
+			{
+				printf(".\n");
+			}
+
+			// insert comma and space if more connections to come
+			else
+			{
+				printf(", ");
+			}
+		}
+
+		// ask user which room to move to
+		printf("WHERE TO? >");
+
+		// get input from user
+		scanf("%s", buffer);
+
+		int validinput = 0;
+
+		// check if input is a listed connection
+		i = 0;
+		for (i=0; i<chosenrooms[currentpos].numlinks; i++)
+		{
+			if (strcmp(buffer, chosenrooms[currentpos].link[i]) == 0)
+			{
+				validinput = 1;
+				
+				// need to find matching index according to chosenrooms
+				int j;
+				for (j=0; j<NUM_ROOMS; j++)
+				{
+					if (strcmp(buffer, chosenrooms[j].name) == 0)
+					{
+						pickedroom = j;
+					}
+				}				
+			}
+		}
+		
+		// check if user is looking for time function
+		if (strcmp(buffer, "time") == 0)
+		{
+			printf("\nDo time stuff\n\n");
+		}
+
+		// if neither of the above, let user try again
+		else if (validinput == 0)
+		{
+			printf("\nHUH? I DON'T UNDERSTAND THAT ROOM. TRY AGAIN.\n\n");
+		}
+
+		// otherwise move rooms and take note of the updated path
+		else
+		{
+			// move to chosen room	
+			currentpos = pickedroom;
+
+			// record room traveled to
+			roomsvisited[steps] = currentpos;
+
+			// increment # of steps
+			steps++;
+			printf("\n");
+		}
+	}
+	
+	// print congratulations message
+	printf("YOU HAVE FOUND THE END ROOM. CONGRATULATIONS!\n");
+	printf("YOU TOOK %d STEPS. YOUR PATH TO VICTORY WAS:\n", steps);
+	
+	// print each visited room
+	i = 0;
+	for (i=0; i<steps; i++)
+	{
+		printf("%s\n", chosenrooms[roomsvisited[i]].name);
+	}
 }
 
 /***********************************************************
@@ -226,10 +349,11 @@ void FreeAtLast()
 
 int main ()
 {
-	// get latest directory
+	// get data from room files
 	GetRoomData();
 	
-	// get data from room files
+	// Initiate and run the game
+	RunGame();
 
 	// free up memory
 	FreeAtLast();
