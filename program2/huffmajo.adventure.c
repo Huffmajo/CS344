@@ -1,9 +1,10 @@
 /***********************************************************
  * Program: huffmajo.adventure.c
  * Author: Joel Huffman
- * Last updated: 2/5/2019
+ * Last updated: 2/9/2019
  * Sources: https://oregonstate.instructure.com/courses/1706555/pages/2-dot-4-manipulating-directories
- * 
+ * https://www.youtube.com/watch?v=nlHIuG3RQ0g
+ * https://www.tutorialspoint.com/c_standard_library/c_function_strftime.htm
  ***********************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +14,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <time.h>
+#include <pthread.h>
 
 #define MAX_LINKS 6
 #define NUM_ROOMS 7
@@ -27,6 +29,7 @@ struct room
 };
 
 struct room chosenrooms[NUM_ROOMS];
+
 
 char newestDirName[256];
 //memset(newestDirName, '\0', sizeof(newestDirName));
@@ -116,7 +119,7 @@ void ReadRoomFiles()
 	{
 		// string for directory name
 		char filedir[50];
-		memset(filedir, '\0', 50);
+		memset(filedir, '\0', sizeof(filedir));
 
 		// open room file
 		sprintf(filedir, "./%s/%s", newestDirName, chosenrooms[i].filename);
@@ -124,15 +127,15 @@ void ReadRoomFiles()
 
 		// buffer string for reading
 		char buffer[50];
-		memset(buffer, '\0', 50);
+		memset(buffer, '\0', sizeof(buffer));
 
 		// read file one line at a time
 		while (fgets(buffer, 50, myfile))
 		{
 			char secondread[15];
-			memset(secondread, '\0', 15);
+			memset(secondread, '\0', sizeof(secondread));
 			char thirdread[15];
-			memset(thirdread, '\0', 15);
+			memset(thirdread, '\0', sizeof(thirdread));
 
 			sscanf(buffer, "%*s %s %s", secondread, thirdread);
 
@@ -213,18 +216,58 @@ void GetRoomData()
 }
 
 /***********************************************************
+ * Function: WriteTime()
+ * Gets current time and writes (or overwrites) 
+ * currentTime.txt.
+ ***********************************************************/
+void* WriteTime()
+{
+	time_t rawtime;
+	struct tm *info;
+	char buffer[80];
+	memset(buffer, '\0', sizeof(buffer));
+
+	time(&rawtime);
+	info = localtime(&rawtime);
+	strftime(buffer, sizeof(buffer), "%I:%M%p, %A, %B %d, %Y", info);
+
+	FILE* writefile = fopen("currentTime.txt", "w");
+	fprintf(writefile, "%s\n", buffer);
+	fclose(writefile);
+}
+
+/***********************************************************
+ * Function: ReadTime()
+ * Reads time data from currentTime.txt and prints it for the
+ * user to see.
+ ***********************************************************/
+void ReadTime()
+{
+	char buffer[50];
+	memset(buffer, '\0', sizeof(buffer));
+
+	FILE* readfile = fopen("currentTime.txt", "r");
+	fgets(buffer, sizeof(buffer), readfile);
+	printf("\n%s\n", buffer);
+	fclose(readfile);
+}
+
+/***********************************************************
  * Function: RunGame()
  * Manages all facets of the game including user I/O, victory
  * case management and positioning.
  ***********************************************************/
 void RunGame()
 {
+	// initialize mutex to lock/unlock threads
+	pthread_mutex_t mymutex = PTHREAD_MUTEX_INITIALIZER;
+
 	// establish starting variables
 	int currentpos;
 	int steps = 0;
 	int roomsvisited[256];
 	char buffer[256];
-	memset(buffer, '\0', 256);
+	memset(buffer, '\0', sizeof(buffer));
 	int pickedroom;
 
 	// start player in the START_ROOM
@@ -294,7 +337,21 @@ void RunGame()
 		// check if user is looking for time function
 		if (strcmp(buffer, "time") == 0)
 		{
-			printf("\nDo time stuff\n\n");
+			// create separate thread for time-keeping
+			pthread_t timethread;
+
+			// only let one thread write to currentTime.txt file
+			pthread_mutex_lock(&mymutex);
+			int resultcode = pthread_create(&timethread, NULL, WriteTime, NULL);
+			pthread_mutex_unlock(&mymutex);
+
+			// block main thread while reading currentTime.txt
+			resultcode = pthread_join(timethread, NULL);
+			
+			// only let one thread read currentTime.txt file
+			pthread_mutex_lock(&mymutex);
+			ReadTime();
+			pthread_mutex_unlock(&mymutex);
 		}
 
 		// if neither of the above, let user try again
@@ -328,6 +385,9 @@ void RunGame()
 	{
 		printf("%s\n", chosenrooms[roomsvisited[i]].name);
 	}
+
+	// destroy mutex
+	pthread_mutex_destroy(&mymutex);
 }
 
 /***********************************************************
@@ -357,6 +417,7 @@ int main ()
 
 	// free up memory
 	FreeAtLast();
+
 		
 	return 0;
 }
