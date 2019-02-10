@@ -3,12 +3,10 @@
  * Author: Joel Huffman
  * Last updated: 2/5/2019
  * Sources: https://www.geeksforgeeks.org/shuffle-a-given-array-using-fisher-yates-shuffle-algorithm/
- * https://oregonstate.instructure.com/courses/1706555/pages/2-dot-2-program-outlining-in-program-2
- * 
+ * https://oregonstate.instructure.com/courses/1706555/pages/2-dot-2-program-outlining-in-program-2 * 
  ***********************************************************/
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <string.h>
 #include <sys/types.h>
 #include <time.h>
@@ -105,9 +103,6 @@ void ChooseRooms ()
 		{
 			strcpy(chosenrooms[i].type, roomtypes[2]);
 		}
-
-		//test print
-		//printf("%s: %s\n", chosenrooms[i].type, chosenrooms[i].name);
 	}
 }
 
@@ -295,23 +290,6 @@ int main ()
 	
 	// Link chosen rooms randomly
 	LinkRooms();
-
-	// Test print
-	/*
-	int i;
-	for (i=0; i<NUM_ROOMS; i++)
-	{
-		printf("ROOM NAME: %s\n", chosenrooms[i].name);
-
-		int j;
-		for (j=0; j<chosenrooms[i].numlinks; j++)
-		{
-			printf("CONNECTION %d: %s\n", (j + 1), chosenrooms[i].link[j]->name);
-		}	
-		
-		printf("ROOM TYPE: %s\n\n", chosenrooms[i].type);
-	}
-	*/
 
 	// generate room files
 	WriteRoomFiles();

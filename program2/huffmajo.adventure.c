@@ -30,9 +30,7 @@ struct room
 
 struct room chosenrooms[NUM_ROOMS];
 
-
 char newestDirName[256];
-//memset(newestDirName, '\0', sizeof(newestDirName));
 
 /***********************************************************
  * Function: GetLatestDir()
@@ -55,25 +53,25 @@ void GetLatestDir()
 
 	if(dirToCheck > 0)
 	{
+		// check each directory
 		while ((fileInDir = readdir(dirToCheck)) != NULL)
 		{
 			if (strstr(fileInDir->d_name, targetDirPrefix) != NULL)
 			{
-//				printf("Found the prefix: %s\n", fileInDir->d_name);
+				// get attributes, including creation timestamp
 				stat(fileInDir->d_name, &dirAttributes);
 
+				// save directory name if it is newer than current newest
 				if ((int)dirAttributes.st_mtime > newestDirTime)
 				{
 					newestDirTime = (int)dirAttributes.st_mtime;
 					memset(newestDirName, '\0', sizeof(newestDirName));
 					strcpy(newestDirName, fileInDir->d_name);
-//					printf("Newer subdir: %s, new time: %d\n", fileInDir->d_name, newestDirTime);
 				}
 			}
 		}
 	}
 	closedir(dirToCheck);
-//	printf("Newest entry found is: %s\n", newestDirName);
 }
 	
 /***********************************************************
@@ -95,11 +93,12 @@ void GetFileNames()
 		// check each file
 		while ((fileInDir = readdir(dirToCheck)) != NULL)
 		{
+			// only pull actual files
 			if (strcmp(fileInDir->d_name, ".") != 0 && strcmp(fileInDir->d_name, "..") != 0)
 			{
+				// store in chosenrooms for easy reference
 				chosenrooms[filenum].filename = malloc(20 * sizeof(char));
 				strcpy(chosenrooms[filenum].filename, fileInDir->d_name);
-//				printf("File %d: %s\n", filenum, chosenrooms[filenum].filename);
 				filenum++;
 			}
 		}
@@ -151,15 +150,13 @@ void ReadRoomFiles()
 				strcpy(chosenrooms[i].type, thirdread);
 			}
 			
-			// must be a connection line
+			// otherwise it must be a connection line
 			else
 			{
 				strcpy(chosenrooms[i].link[chosenrooms[i].numlinks], thirdread);
 				chosenrooms[i].numlinks++;				
 			}			
-
 		}
-
 		// close file when done reading from it
 		fclose(myfile);
 	}
@@ -197,22 +194,6 @@ void GetRoomData()
 
 	// for each room file, store name, connections and type in chosenrooms array
 	ReadRoomFiles();
-
-
-	// test print
-/*
-	int i;
-	for (i=0; i<NUM_ROOMS; i++)
-	{
-		printf("Name: %s\n", chosenrooms[i].name);
-		int j;
-		for (j=0; j<chosenrooms[i].numlinks; j++)
-		{
-			printf("Con: %s\n", chosenrooms[i].link[j]);
-		}
-		printf("Type: %s\n\n", chosenrooms[i].type);
-	}
-*/
 }
 
 /***********************************************************
@@ -221,16 +202,18 @@ void GetRoomData()
  * currentTime.txt.
  ***********************************************************/
 void* WriteTime()
-{
+{ 
 	time_t rawtime;
 	struct tm *info;
 	char buffer[80];
 	memset(buffer, '\0', sizeof(buffer));
 
+	// get system time and put it in a readable format
 	time(&rawtime);
 	info = localtime(&rawtime);
 	strftime(buffer, sizeof(buffer), "%I:%M%p, %A, %B %d, %Y", info);
 
+	// write formatted time to file
 	FILE* writefile = fopen("currentTime.txt", "w");
 	fprintf(writefile, "%s\n", buffer);
 	fclose(writefile);
@@ -242,10 +225,11 @@ void* WriteTime()
  * user to see.
  ***********************************************************/
 void ReadTime()
-{
+{ 
 	char buffer[50];
 	memset(buffer, '\0', sizeof(buffer));
 
+	// read entire line from previously created time file
 	FILE* readfile = fopen("currentTime.txt", "r");
 	fgets(buffer, sizeof(buffer), readfile);
 	printf("\n%s\n", buffer);
@@ -417,7 +401,6 @@ int main ()
 
 	// free up memory
 	FreeAtLast();
-
 		
 	return 0;
 }
