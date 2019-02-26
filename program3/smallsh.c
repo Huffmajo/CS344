@@ -109,7 +109,7 @@ void ClearFlags ()
 void CheckFlags (char** args)
 {
 	// check if blank line or entered as comment
-	if (*args == NULL || args[0][0] == '#')
+	if (args[0] == NULL || strncmp(args[0], "#", 1) == 0)
 	{
 		flag.emptyOrComment = 1;
 	}
@@ -157,6 +157,10 @@ int main ()
 		if (flag.redirectOut == 1)
 		{
 			printf("redirectOut (>)\n");
+		}
+		if (flag.emptyOrComment == 1)
+		{
+			printf("emptyOrComment\n");
 		}
 		printf("Number of arguments: %d\n", flag.numArgs);
 
