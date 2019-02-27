@@ -120,8 +120,58 @@ void CheckFlags (char** args)
 	}
 	else
 	{
-		
+		// do nothing
 	}
+}
+
+/***********************************************************
+ * Function: BuiltInFunctions(args)
+ * 
+ ***********************************************************/
+void BuiltInFunctions(char** args)
+{
+	// check if built-in exit function is called, & is accepted but ignored
+	if (strcmp(args[0], "exit") == 0 && (args[1] == NULL || strcmp(args[1], "&") == 0))
+	{
+		// kill all processes
+
+		// exit shell
+		exit(0);
+	}
+	// check if built-in cd function is called
+	else if (strcmp(args[0], "cd") == 0)
+	{
+		// if only arg is "cd" go to home dir
+		if (flag.numArgs == 1)
+		{
+			chdir(getenv("HOME"));
+		}
+		// try to change dir to given arguement
+		else if (chdir(args[1]) == 0)
+		{
+			// directory successfully changes
+		}
+		// if not, print error message for user
+		else
+		{
+			printf("%s is not a valid directory\n", args[1]);
+			fflush(stdout);
+		}
+	}
+	// otherwise must be status function 
+	else if (strcmp(args[0], "status") == 0)
+	{
+		printf("Insert status function here ;D\n");
+	}
+}
+
+/***********************************************************
+ * Function: NonBuiltInFunctions(args)
+ * 
+ ***********************************************************/
+void NonBuiltInFunctions(args)
+{
+	printf("Non-built-in function :)\n");
 }
 
 int main ()
@@ -143,8 +193,23 @@ int main ()
 		// check for remaining flags
 		CheckFlags(args);
 
-		// run functions based on flags and commands
+		// check if input is not a comment or empty
+		if (flag.emptyOrComment == 0)
+		{
+			// check if input is a built-in function
+			if ((strcmp(args[0], "exit") == 0) || (strcmp(args[0], "cd") == 0) || (strcmp(args[0], "status") == 0))
+			{
+				BuiltInFunctions(args);
+			}
+			
+			// otherwise run it as a non-built-in function
+			else
+			{
+				printf("Non-built-in function flow here\n");
+			}
+		}
 
+/*
 		printf("Flags raised:\n");
 		if (flag.background == 1)
 		{
@@ -170,7 +235,7 @@ int main ()
 		{
 			printf("%d: %s\n", i, args[i]);
 		}
-
+*/
 
 		
 
