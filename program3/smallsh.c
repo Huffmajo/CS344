@@ -3,6 +3,8 @@
  * Author: Joel Huffman
  * Last updated: 2/24/2019
  * Sources: https://oregonstate.instructure.com/courses/1706555/pages/3-dot-3-advanced-user-input-with-getline
+ * https://www.geeksforgeeks.org/dup-dup2-linux-system-call/
+ * 
  ***********************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +14,7 @@
 
 #define MAX_CHARS 2048
 #define MAX_ARGS 512
+#define _GNU_SOURCE
 
 struct flag
 {
@@ -24,6 +27,9 @@ struct flag
 
 // used to track flags used in current operation
 struct flag flag;
+
+// used to track last processed exit status or terminating signal
+char* lastStatus;
 
 /***********************************************************
  * Function: GetUserInput()
@@ -60,30 +66,63 @@ char** ReadInput(char* userInput)
 	// maximum amount of arguments is 512
 	char** args = malloc(sizeof(char*) * MAX_ARGS);
 
-	int i = 0;
+	// split string by any spacing characters
 	char* token = strtok(userInput, " \t\r\n");
 
 	// read and separate all arguments in string
 	while (token != NULL)
 	{
+		// if >, set redirectOut flag
 		if (strcmp(token, ">") == 0)
 		{
 			flag.redirectOut = 1;
 		}
+		// if <, set redirectIn flag
 		else if (strcmp(token, "<") == 0)
 		{
 			flag.redirectIn = 1;
 		}
+		// otherwise it's a command, argument or '&'
 		else
-		{
-			args[i] = token;
-			i++;
+		{			
+			char* after;
+			int afterStart;
+			int len;
+
+			while (strstr(token, "$$"))
+			{
+				afterStart = strlen(strstr(token, "$$")) + 2;
+				len = strlen(token) - 1;
+
+				// get string after "$$"
+				strncpy(after, token + afterStart, (len - afterStart));		
+
+				sprintf(strstr(token, "$$"), "%d", getpid());
+			}
+
+			args[flag.numArgs] = token;
+			flag.numArgs++;
+			
+			// DEBUG
+			printf("afterStart: %d\n", afterStart);
+			printf("len: %d\n", len);
+			int ans = len - afterStart;
+			printf("%d - %d = %d \n", len, afterStart, ans);
+			printf("First half: %s\n", token);
+			if (after != NULL)
+			{
+				printf("After: %s\n", after);
+			}
+			else
+			{
+				printf("After is NULL\n");
+			}
+
 		}
 		token = strtok(NULL, " \t\r\n");
 	}
 	// mark end of args array
-	args[i] = NULL;
-	flag.numArgs = i;
+	args[flag.numArgs] = NULL;
 	return args;
 }
 
@@ -126,7 +165,9 @@ void CheckFlags (char** args)
 
 /***********************************************************
  * Function: BuiltInFunctions(args)
- * 
+ * Runs one of the built-in commands based on command line 
+ * user input in args. Can run "exit", "cd" and "status". 
+ * Returns nothing.
  ***********************************************************/
 void BuiltInFunctions(char** args)
 {
@@ -161,17 +202,30 @@ void BuiltInFunctions(char** args)
 	// otherwise must be status function 
 	else if (strcmp(args[0], "status") == 0)
 	{
-		printf("Insert status function here ;D\n");
+		printf("Status built-in here\n");
 	}
 }
 
 /***********************************************************
  * Function: NonBuiltInFunctions(args)
- * 
+ * Runs any non
  ***********************************************************/
-void NonBuiltInFunctions(args)
+void NonBuiltInFunctions(char** args)
 {
-	printf("Non-built-in function :)\n");
+/*
+	pid_t pid;
+	int status;
+	// check if process will be run in foregorund
+	if (flag.background == 0)
+	{
+
+	}
+	// otherwise process will be run in background
+	else 
+	{
+
+	}
+*/
 }
 
 int main ()
@@ -205,9 +259,16 @@ int main ()
 			// otherwise run it as a non-built-in function
 			else
 			{
-				printf("Non-built-in function flow here\n");
+				NonBuiltInFunctions(args);
 			}
 		}
+
+		int i;
+		for (i = 0; i < flag.numArgs; i++)
+		{
+			printf("%s ", args[i]);
+		}
+		printf("\n");
 
 /*
 		printf("Flags raised:\n");
@@ -237,7 +298,7 @@ int main ()
 		}
 */
 
-		
+			
 
 		// make sure to exit loop
 		keepRunning = 0;		
