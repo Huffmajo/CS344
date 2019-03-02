@@ -1,7 +1,7 @@
 /***********************************************************
  * Program: smallsh.c
  * Author: Joel Huffman
- * Last updated: 2/24/2019
+ * Last updated: 3/3/2019
  * Sources: https://oregonstate.instructure.com/courses/1706555/pages/3-dot-3-advanced-user-input-with-getline
  * https://www.geeksforgeeks.org/dup-dup2-linux-system-call/
  * 
@@ -51,6 +51,24 @@ char* GetUserInput()
 		clearerr(stdin);
 	}
 
+	// expand $$ to pid
+	// char* afterStr = NULL;
+	// int afterPos;
+	// int inputLen;
+
+
+	while (strstr(userInput, "$$"))
+	{
+		// afterStr = strstr(userInput, "$$") + 2;
+		// afterPos = strlen(afterStr);
+		// inputLen = strlen(userInput) - 1;
+
+		// get string after "$$"
+		// strncpy(afterStr, userInput + afterPos, (len - afterPos));
+		sprintf(strstr(userInput, "$$"), "%d", getpid());
+	}
+	
+
 	return userInput;
 }
 
@@ -85,38 +103,8 @@ char** ReadInput(char* userInput)
 		// otherwise it's a command, argument or '&'
 		else
 		{			
-			char* after;
-			int afterStart;
-			int len;
-
-			while (strstr(token, "$$"))
-			{
-				afterStart = strlen(strstr(token, "$$")) + 2;
-				len = strlen(token) - 1;
-
-				// get string after "$$"
-				strncpy(after, token + afterStart, (len - afterStart));		
-
-				sprintf(strstr(token, "$$"), "%d", getpid());
-			}
-
 			args[flag.numArgs] = token;
 			flag.numArgs++;
-			
-			// DEBUG
-			printf("afterStart: %d\n", afterStart);
-			printf("len: %d\n", len);
-			int ans = len - afterStart;
-			printf("%d - %d = %d \n", len, afterStart, ans);
-			printf("First half: %s\n", token);
-			if (after != NULL)
-			{
-				printf("After: %s\n", after);
-			}
-			else
-			{
-				printf("After is NULL\n");
-			}
 
 		}
 		token = strtok(NULL, " \t\r\n");
@@ -226,6 +214,8 @@ void NonBuiltInFunctions(char** args)
 
 	}
 */
+	printf("Non-built-in function here\n");
+
 }
 
 int main ()
