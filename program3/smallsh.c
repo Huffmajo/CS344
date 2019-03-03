@@ -13,6 +13,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/wait.h>
 
 #define MAX_CHARS 2048
 #define MAX_ARGS 512
@@ -257,91 +258,103 @@ void NonBuiltInFunctions(char** args)
 
 	pid_t pid;
 	int status;
-	int inStatus;
-	int outStatus;
+	int result;
+	int sourceFD;
+	int targetFD;
 
-	// run in background if it's flagged AND not disabled
-	if (flag.background == 1 && backgroundDisable == 0)
+	pid = fork();
+	// error with fork
+	if (pid == -1)
 	{
-		printf("Will run in background\n");
+		perror("Fork error\n");
+		exit(1);
 	}
 
-	// otherwise process will run in foreground
-	else
+	// child process
+	else if (pid == 0)
 	{
-		pid = fork();
-		// error with fork
-		if (pid == -1)
+		// redirect stdin if needed
+		if (flag.redirectIn == 1)
 		{
-			perror("Fork error");
-			exit(1);
-		}
-
-		// child process
-		else if (pid == 0)
-		{
-			// redirect stdin if needed
-			if (flag.redirectIn == 1)
+			// if file is readable, read from it
+			sourceFD = open(args[flag.reInFile], O_RDONLY);
+			if (sourceFD != -1)
 			{
-				// if file is readable, read from it
-				if (inStatus = open(args[flag.reInFile], O_RDONLY) != -1)
+				// if redirection fails, alert user
+				result = dup2(sourceFD, 0);
+				if (result == -1)
 				{
-					// if redirection fails, alert user
-					if (dup2(inStatus, 0) == -1)
-					{
-						printf("Error with stdin redirect\n");
-						fflush(stdout);
-						exit(1);
-					}
-				}
-		
-				// otherwise alert user that file is unreadable
-				else
-				{
-					printf("%s cannot be opened for input\n", args[flag.reInFile]);
-					fflush(stdout);
+					perror("Error with stdin redirection\n");
 					exit(1);
 				}
 			}
-			
-			// redirect stdout if needed
-			if (flag.redirectOut == 1)
+		
+			// otherwise alert user that file is unreadable
+			else
 			{
-				// if file doesn't exist, creat it. If it does exists, write to it
-				if (outStatus = open(args[flag.reOutFile], O_WRONLY | O_CREAT | O_TRUNC, 0666) == -1)
-				{
-					printf("%s cannot be opened for output\n", args[flag.reOutFile]);
-					fflush(stdout);
-				}
+				perror("Cannot be open input file\n");
+				exit(1);
+			}
+		}
+			
+		// redirect stdout if needed
+		if (flag.redirectOut == 1)
+		{
+			// if file doesn't exist, creat it. If it does exists, write to it
+			targetFD = open(args[flag.reOutFile], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+			if (targetFD == -1)
+			{
+				perror("Cannot open output file\n");
+				exit(1);
+			}
 				
-				// if redirection fails, alert user
-				else
+			// if redirection fails, alert user
+			else
+			{
+				result = dup2(targetFD, 1);
+				if (result == -1)
 				{
-					if (dup2(outStatus, 0) == -1)
-					{
-						printf("Error with stdout redirection\n");
-						fflush(stdout);
-					}
+					perror("Error with stdout redirection\n");
+					exit(1);
 				}
 			}
-
-			// execute function
-			if (execvp(*args, args) == -1)
-			{
-				printf("Execution statement failed\n");
-				fflush(stdout);
-			}
-			exit(0);
 		}
 
-		// parent process
-		else
-		{			
-			
+		// execute function
+		if (execvp(args[0], args) == -1)
+		{
+			perror("Execution statement failed\n");
+			exit(1);
 		}
+		exit(0);
 	}
 
-	printf("non-built-in funct\n");
+	// parent process
+	else
+	{			
+		pid_t parentPid;
+	
+		// run in background if it's flagged AND not disabled
+		if (flag.background == 1 && backgroundDisable == 0)
+		{
+			parentPid = waitpid(pid, &status, WNOHANG);
+			printf("background pid is %d\n", pid);
+			fflush(stdout);			
+		}
+	
+		// otherwise run in foreground
+		else
+		{
+			parentPid = waitpid(pid, &status, 0);
+		}
+		
+		while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
+		{
+			printf("child %d terminated\n", pid);
+			printf("Exit status goes here\n");
+			fflush(stdout);
+		}
+	}
 }
 
 /***********************************************************
