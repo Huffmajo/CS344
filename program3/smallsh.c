@@ -28,8 +28,40 @@ struct flag
 // used to track flags used in current operation
 struct flag flag;
 
-// used to track last processed exit status or terminating signal
-char* lastStatus;
+int keepRunning = 1;
+
+// used to track last processed exit status and terminating signal
+int lastStatus = -1;
+int isStatus;
+
+// limits if processes can be run in background
+int backgroundDisable = 0;
+
+/***********************************************************
+ * Function: ExpandPid(string)
+ * Expands any $$ substring in string to the process id. 
+ * Returns that char*.
+ ***********************************************************/
+char* ExpandPid(char* string)
+{
+	// char* afterStr = NULL;
+	// int afterPos;
+	// int inputLen;
+
+
+	while (strstr(string, "$$"))
+	{
+		// afterStr = strstr(string, "$$") + 2;
+		// afterPos = strlen(afterStr);
+		// inputLen = strlen(string) - 1;
+
+		// get string after "$$"
+		// strncpy(afterStr, string + afterPos, (len - afterPos));
+		sprintf(strstr(string, "$$"), "%d", getpid());
+	}
+
+	return string;		
+}
 
 /***********************************************************
  * Function: GetUserInput()
@@ -50,24 +82,9 @@ char* GetUserInput()
 	{
 		clearerr(stdin);
 	}
-
-	// expand $$ to pid
-	// char* afterStr = NULL;
-	// int afterPos;
-	// int inputLen;
-
-
-	while (strstr(userInput, "$$"))
-	{
-		// afterStr = strstr(userInput, "$$") + 2;
-		// afterPos = strlen(afterStr);
-		// inputLen = strlen(userInput) - 1;
-
-		// get string after "$$"
-		// strncpy(afterStr, userInput + afterPos, (len - afterPos));
-		sprintf(strstr(userInput, "$$"), "%d", getpid());
-	}
 	
+	//expand $$ to pid
+	userInput = ExpandPid(userInput);
 
 	return userInput;
 }
@@ -116,7 +133,7 @@ char** ReadInput(char* userInput)
 
 /***********************************************************
  * Function: ClearFlags()
- * Resets all flags to false (0). No parameters or return 
+ * Reset all flags to false (0). No parameters or return 
  * value. 
  ***********************************************************/
 void ClearFlags ()
@@ -163,6 +180,7 @@ void BuiltInFunctions(char** args)
 	if (strcmp(args[0], "exit") == 0 && (args[1] == NULL || strcmp(args[1], "&") == 0))
 	{
 		// kill all processes
+		
 
 		// exit shell
 		exit(0);
@@ -188,9 +206,31 @@ void BuiltInFunctions(char** args)
 		}
 	}
 	// otherwise must be status function 
-	else if (strcmp(args[0], "status") == 0)
+	else if (strcmp(args[0], "status") == 0 && args[1] == NULL)
 	{
-		printf("Status built-in here\n");
+		// check if no prior applicable processes have run
+		if (lastStatus == -1)
+		{
+			printf("exit value 0\n");
+			fflush(stdout);
+		} 
+		// if last applicable process completed, print exit status
+		else if (isStatus == 1)
+		{
+			printf("exit value %d\n", lastStatus);
+			fflush(stdout);
+		}
+		// if last applicable process was terminated by signal, print terminating signal
+		else if (isStatus == 0)
+		{
+			printf("terminated by signal %d\n", lastStatus);
+			fflush(stdout);
+		}
+		else
+		{
+			printf("Something has gone wrong\n");
+			fflush(stdout);
+		}
 	}
 }
 
@@ -200,30 +240,70 @@ void BuiltInFunctions(char** args)
  ***********************************************************/
 void NonBuiltInFunctions(char** args)
 {
-/*
+
 	pid_t pid;
 	int status;
-	// check if process will be run in foregorund
-	if (flag.background == 0)
-	{
 
-	}
-	// otherwise process will be run in background
-	else 
+	// run in background if it's flagged AND not disabled
+	if (flag.background == 1 && backgroundDisable == 0)
 	{
-
+		printf("Will run in background\n");
 	}
-*/
+	// otherwise process will run in foreground
+	else
+	{
+		printf("Will run in foreground\n");		
+	}
+
+	
 	printf("Non-built-in function here\n");
 
 }
 
+/***********************************************************
+ * Function: SwitchBackgroundMode(signo)
+ * Toggles on or off whether input processes can be run in 
+ * the background with '&'. Returns nothing.
+ ***********************************************************/
+void SwitchBackgroundMode(int signo)
+{
+	char* message = "\nNew processes can no longer be run in background\n";
+	if (backgroundDisable == 0)
+	{
+		// new background processes now disabled
+		backgroundDisable = 1;
+		// can't use printf due to reentrancy issue
+		write(STDOUT_FILENO, message, 50);
+	}
+	else
+	{
+		// new background processes now re-enabled
+		backgroundDisable = 0;
+		message = "\nNew processes can now be run in the background\n";
+		write(STDOUT_FILENO, message, 48);
+	}
+}
+
 int main ()
 {
-	int keepRunning = 1;
+	// setup signal handler for CTRL-C
+	struct sigaction SIGINT_action = {0};
 
-	//run program 
-	while(keepRunning)
+	// don't run default terminate
+	SIGINT_action.sa_handler = SIG_IGN;
+
+	// setup signal handler for CTRL-Z
+	struct sigaction SIGTSTP_action = {0};
+
+	// use function instead of default stop 
+	SIGTSTP_action.sa_handler = SwitchBackgroundMode;
+
+	// link signals to use created handlers
+	sigaction(SIGINT, &SIGINT_action, NULL);
+	sigaction(SIGTSTP, &SIGTSTP_action, NULL);
+
+	//run program until exit is entered
+	while(1)
 	{
 		// get input from command line
 		char* userInput = GetUserInput();
@@ -252,7 +332,7 @@ int main ()
 				NonBuiltInFunctions(args);
 			}
 		}
-
+/*
 		int i;
 		for (i = 0; i < flag.numArgs; i++)
 		{
@@ -260,7 +340,6 @@ int main ()
 		}
 		printf("\n");
 
-/*
 		printf("Flags raised:\n");
 		if (flag.background == 1)
 		{
@@ -286,14 +365,7 @@ int main ()
 		{
 			printf("%d: %s\n", i, args[i]);
 		}
-*/
-
-			
-
-		// make sure to exit loop
-		keepRunning = 0;		
+*/	
 	}
-
-
 	return 0;
 }
