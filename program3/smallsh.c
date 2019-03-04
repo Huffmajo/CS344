@@ -3,7 +3,8 @@
  * Program: smallsh.c
  * Author: Joel Huffman
  * Last updated: 3/3/2019
- * Sources: https://oregonstate.instructure.com/courses/1706555/pages/3-dot-3-advanced-user-input-with-getline
+ * Sources: https://oregonstate.instructure.com/courses/1706555/pages/block-3
+ * https://oregonstate.instructure.com/courses/1706555/pages/3-dot-3-advanced-user-input-with-getline
  * https://www.geeksforgeeks.org/dup-dup2-linux-system-call/
  * 
  ***********************************************************/
@@ -115,7 +116,7 @@ char** ReadInput(char* userInput)
 		{
 			flag.redirectOut = 1;
 			// next arg is file to write to
-			flag.reOutFile = flag.numArgs + 1;
+			flag.reOutFile = flag.numArgs;
 		}
 
 		// if <, set redirectIn flag
@@ -123,7 +124,7 @@ char** ReadInput(char* userInput)
 		{
 			flag.redirectIn = 1;
 			// next arg is file to read from
-			flag.reInFile = flag.numArgs + 1;
+			flag.reInFile = flag.numArgs;
 		}
 
 		// otherwise it's a command, argument or '&'
@@ -168,10 +169,14 @@ void CheckFlags (char** args)
 		flag.emptyOrComment = 1;
 	}
 
-	// check if background process character
+	// check if background process character is last argument
 	else if (strcmp(args[flag.numArgs - 1], "&") == 0)
 	{
 		flag.background = 1;
+
+		// remove & from args and decrement numArgs
+		args[flag.numArgs - 1] = NULL;
+		flag.numArgs--;
 	}
 	else
 	{
@@ -190,8 +195,12 @@ void BuiltInFunctions(char** args)
 	// check if built-in exit function is called, & is accepted but ignored
 	if (strcmp(args[0], "exit") == 0 && (args[1] == NULL || strcmp(args[1], "&") == 0))
 	{
-		// kill all processes
-		
+		// kill any background processes
+		int i;
+		for (i = 0; i < currBgProcess; i++)
+		{
+			kill(bgProcesses[i], SIGKILL);
+		}
 
 		// exit shell
 		exit(0);
@@ -250,10 +259,10 @@ void BuiltInFunctions(char** args)
 }
 
 /***********************************************************
- * Function: NonBuiltInFunctions(args)
+ * Function: NonBuiltInFunctions(args, sigint, sigtstp)
  * Runs any non
  ***********************************************************/
-void NonBuiltInFunctions(char** args)
+void NonBuiltInFunctions(char** args, struct sigaction sigint, struct sigaction sigtstp)
 {
 
 	pid_t pid;
@@ -273,6 +282,14 @@ void NonBuiltInFunctions(char** args)
 	// child process
 	else if (pid == 0)
 	{
+		// sigint signals can halt child processes
+		sigint.sa_handler = SIG_DFL;
+		sigaction(SIGINT, &sigint, NULL);
+
+		// sigtstp signals will be ignored in child processes
+		sigtstp.sa_handler = SIG_IGN;
+		sigaction(SIGTSTP, &sigtstp, NULL);
+
 		// redirect stdin if needed
 		if (flag.redirectIn == 1)
 		{
@@ -292,7 +309,7 @@ void NonBuiltInFunctions(char** args)
 			// otherwise alert user that file is unreadable
 			else
 			{
-				perror("Cannot be open input file\n");
+				perror("Cannot open input file\n");
 				exit(1);
 			}
 		}
@@ -337,6 +354,10 @@ void NonBuiltInFunctions(char** args)
 		// run in background if it's flagged AND not disabled
 		if (flag.background == 1 && backgroundDisable == 0)
 		{
+			// store pids to ensure they get killed later
+			bgProcesses[currBgProcess] = pid;
+			currBgProcess++;
+
 			parentPid = waitpid(pid, &status, WNOHANG);
 			printf("background pid is %d\n", pid);
 			fflush(stdout);			
@@ -348,14 +369,36 @@ void NonBuiltInFunctions(char** args)
 			parentPid = waitpid(pid, &status, 0);
 		}
 		
+		// listen for background processes completing 
 		while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
 		{
-			printf("child %d terminated\n", pid);
-			printf("Exit status goes here\n");
-			fflush(stdout);
+			printf("Background pid %d is done: ", pid);
+
+			// if processes completed normally, show exit status
+			if (WIFEXITED(status) != 0)
+			{
+				// also store exit status for status built-in
+				lastStatus = WEXITSTATUS(status);
+				isStatus = 1;
+				
+				printf("exit value %d\n", lastStatus);
+				fflush(stdout);				
+			}
+
+			// otherwise, show terminating signal
+			else
+			{
+				// also store signal for status built-in
+				lastStatus = WTERMSIG(status);
+				isStatus = 0;
+
+				printf("terminated by signal %d\n", lastStatus);
+				fflush(stdout);
+			}
 		}
 	}
 }
+
 
 /***********************************************************
  * Function: SwitchBackgroundMode(signo)
@@ -430,7 +473,7 @@ int main ()
 			// otherwise run it as a non-built-in function
 			else
 			{
-				NonBuiltInFunctions(args);
+				NonBuiltInFunctions(args, SIGINT_action, SIGTSTP_action);
 			}
 		}
 	}
