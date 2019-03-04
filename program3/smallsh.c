@@ -6,7 +6,7 @@
  * Sources: https://oregonstate.instructure.com/courses/1706555/pages/block-3
  * https://oregonstate.instructure.com/courses/1706555/pages/3-dot-3-advanced-user-input-with-getline
  * https://www.geeksforgeeks.org/dup-dup2-linux-system-call/
- * 
+ * https://www.geeksforgeeks.org/signals-c-language/
  ***********************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,18 +53,15 @@ int currBgProcess = 0;
 char* ExpandPid(char* string)
 {
 	int pid = getpid();
-	
+
+	// search for each instance of $$	
 	while (strstr(string, "$$"))
 	{
-		// afterStr = strstr(string, "$$") + 2;
-		// afterPos = strlen(afterStr);
-
-		// get string after "$$"
-		// strncpy(afterStr, string + afterPos, (len - afterPos));
+		// replace $$ with pid
 		sprintf(strstr(string, "$$"), "%d", pid);
 	}
 	
-	return string;		
+	return string;
 }
 
 /***********************************************************
@@ -282,11 +279,14 @@ void NonBuiltInFunctions(char** args, struct sigaction sigint, struct sigaction 
 	// child process
 	else if (pid == 0)
 	{
-		// sigint signals can halt child processes
-		sigint.sa_handler = SIG_DFL;
-		sigaction(SIGINT, &sigint, NULL);
+		// sigint can halt foreground child processes
+		if (flag.background == 0)
+		{
+			sigint.sa_handler = SIG_DFL;
+			sigaction(SIGINT, &sigint, NULL);
+		}
 
-		// sigtstp signals will be ignored in child processes
+		// sigtstp signals will be ignored by all child processes
 		sigtstp.sa_handler = SIG_IGN;
 		sigaction(SIGTSTP, &sigtstp, NULL);
 
@@ -313,11 +313,28 @@ void NonBuiltInFunctions(char** args, struct sigaction sigint, struct sigaction 
 				exit(1);
 			}
 		}
+	
+		// if background and has no input redirect, send from /dev/null
+		else if (flag.background == 1 && backgroundDisable == 0)
+		{
+			// if source is readable, read from it
+			sourceFD = open("/dev/null", O_RDONLY);
+			if (sourceFD != -1)
+			{
+				// if redirection fails, alert user
+				result = dup2(sourceFD, 0);
+				if (result == -1)
+				{
+					perror("Error opening /dev/null");
+					exit(1);	
+				}
+			}
+		}
 			
 		// redirect stdout if needed
 		if (flag.redirectOut == 1)
 		{
-			// if file doesn't exist, creat it. If it does exists, write to it
+			// if file doesn't exist, create it. If it does exists, write to it
 			targetFD = open(args[flag.reOutFile], O_WRONLY | O_CREAT | O_TRUNC, 0644);
 			if (targetFD == -1)
 			{
@@ -337,6 +354,23 @@ void NonBuiltInFunctions(char** args, struct sigaction sigint, struct sigaction 
 			}
 		}
 
+		// if background and has no output redirect, send to /dev/null
+		else if (flag.background == 1 && backgroundDisable == 0)
+		{
+			// if source is writeable,  from it
+			targetFD = open("/dev/null", O_WRONLY | O_CREAT | O_TRUNC, 0644);
+			if (targetFD != -1)
+			{
+				// if redirection fails, alert user
+				result = dup2(targetFD, 1);
+				if (result == -1)
+				{
+					perror("Error opening /dev/null");
+					exit(1);	
+				}
+			}
+		}
+		
 		// execute function
 		if (execvp(args[0], args) == -1)
 		{
@@ -349,8 +383,6 @@ void NonBuiltInFunctions(char** args, struct sigaction sigint, struct sigaction 
 	// parent process
 	else
 	{			
-		pid_t parentPid;
-	
 		// run in background if it's flagged AND not disabled
 		if (flag.background == 1 && backgroundDisable == 0)
 		{
@@ -358,7 +390,7 @@ void NonBuiltInFunctions(char** args, struct sigaction sigint, struct sigaction 
 			bgProcesses[currBgProcess] = pid;
 			currBgProcess++;
 
-			parentPid = waitpid(pid, &status, WNOHANG);
+			waitpid(pid, &status, WNOHANG);
 			printf("background pid is %d\n", pid);
 			fflush(stdout);			
 		}
@@ -366,35 +398,45 @@ void NonBuiltInFunctions(char** args, struct sigaction sigint, struct sigaction 
 		// otherwise run in foreground
 		else
 		{
-			parentPid = waitpid(pid, &status, 0);
-		}
-		
-		// listen for background processes completing 
-		while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
-		{
-			printf("Background pid %d is done: ", pid);
-
-			// if processes completed normally, show exit status
+			waitpid(pid, &status, 0);
+			
+			// if process completed normally, store exit status
 			if (WIFEXITED(status) != 0)
 			{
-				// also store exit status for status built-in
 				lastStatus = WEXITSTATUS(status);
 				isStatus = 1;
-				
-				printf("exit value %d\n", lastStatus);
-				fflush(stdout);				
 			}
 
-			// otherwise, show terminating signal
-			else
+			// otherwise, store terminating signal
+			if (WIFSIGNALED(status) != 0)
 			{
-				// also store signal for status built-in
 				lastStatus = WTERMSIG(status);
 				isStatus = 0;
 
+				// also print out exit status
 				printf("terminated by signal %d\n", lastStatus);
 				fflush(stdout);
 			}
+		}
+	}
+
+	// listen for background processes completing 
+	while ((pid = waitpid(-1, &status, WNOHANG)) > 0)
+	{
+		printf("Background pid %d is done: ", pid);
+
+		// if processes completed normally, show exit status
+		if (WIFEXITED(status) != 0)
+		{
+			printf("exit value %d\n", status);
+			fflush(stdout);				
+		}
+
+		// otherwise, show terminating signal
+		else
+		{
+			printf("terminated by signal %d\n", status);
+			fflush(stdout);
 		}
 	}
 }
@@ -435,12 +477,14 @@ int main ()
 
 	// don't run default terminate
 	SIGINT_action.sa_handler = SIG_IGN;
+	SIGINT_action.sa_flags = SA_RESTART;
 
 	// setup signal handler for CTRL-Z
 	struct sigaction SIGTSTP_action = {0};
 
 	// use function instead of default stop 
 	SIGTSTP_action.sa_handler = SwitchBackgroundMode;
+	SIGTSTP_action.sa_flags = SA_RESTART;
 
 	// link signals to use created handlers
 	sigaction(SIGINT, &SIGINT_action, NULL);
@@ -449,6 +493,9 @@ int main ()
 	//run program until exit is entered
 	while(1)
 	{
+		// check if 
+		//ProcessEnder();
+
 		// get input from command line
 		char* userInput = GetUserInput();
 
