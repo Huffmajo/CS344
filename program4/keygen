@@ -1,0 +1,66 @@
+#!/bin/bash
+############################################
+# Script - keygen
+# Author - Joel Huffman
+# Last updated - 3/08/2019
+# Description - Generates file of random 
+# uppercase letters or spaces of the length
+# sent in as a argument. This string of 
+# characters is then saved to the file "keyfile".
+# Sources - matrix script
+# https://stackoverflow.com/questions/12855610/shell-script-is-there-any-way-converting-number-to-char/12855787
+############################################
+
+
+############################################
+# error - prints the string argument/error,
+# sends stdout to stderr and exits 1
+############################################
+error() {
+	echo $1 >&2
+	exit 1
+}
+
+if [ $# == 1 ]
+then
+	keylength=$1
+
+	if ! [[ "$keylength" =~ ^[0-9]+$ ]]
+	then 
+		error "keylength is not a valid number"
+	else
+		count=0		
+
+		# Insert qunatity of random capital letters and spaces equal to keylength
+		while [ $count -lt $keylength ]
+		do
+			# get random capital letter
+			rand=$((65 + RANDOM % 27))
+			
+			# space character is reserved for when rand = 91
+			if [ $rand -eq 91 ]
+			then
+				# change to space's decimal value
+				rand=32
+			fi
+
+			# if this is first character, replace keyfile if it already exists
+			if [ $count -eq 0 ]
+			then
+				printf \\$(printf '%03o' $rand) > keyfile
+			# otherwise only append to file
+			else
+				printf \\$(printf '%03o' $rand) >> keyfile
+			fi
+
+			# increment count
+			count=$((count + 1))
+		done
+
+		# Append a newline character to end of file
+		printf "\n" >> keyfile		
+	fi
+else
+	error "Wrong number of arguments"
+fi
+exit 0
