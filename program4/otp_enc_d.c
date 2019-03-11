@@ -2,6 +2,10 @@
  * Program: otp_enc_d.c
  * Author: Joel Huffman
  * Last updated: 3/9/2019
+ * Description: Gets a port number and listens at that port
+ * for a socket connection. Then receives and encrypts a 
+ * plainText file with a keyfile through the connection. Finally
+ * the encrypted file is sent back through the connection.
  * Sources:
  ***********************************************************/
 #include <stdio.h>
@@ -12,16 +16,31 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-void error(const char *msg) { perror(msg); exit(1); } // Error function used for reporting issues
+// Error function used for reporting issues
+void error(const char *msg) 
+{ 
+	perror(msg); 
+	exit(1); } 
 
 int main(int argc, char *argv[])
 {
-	int listenSocketFD, establishedConnectionFD, portNumber, charsRead;
+	int listenSocketFD, 
+	    establishedConnectionFD, 
+	    portNumber, 
+	    charsRead;
 	socklen_t sizeOfClientInfo;
 	char buffer[256];
-	struct sockaddr_in serverAddress, clientAddress;
+	struct sockaddr_in serverAddress, 
+			   clientAddress;
 
-	if (argc < 2) { fprintf(stderr,"USAGE: %s port\n", argv[0]); exit(1); } // Check usage & args
+	// Check usage & args
+	if (argc < 2) 
+	{ 
+		fprintf(stderr,"USAGE: %s port\n", argv[1]); 
+		exit(1); 
+	} 
+
+
 
 	// Set up the address struct for this process (the server)
 	memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
@@ -32,7 +51,12 @@ int main(int argc, char *argv[])
 
 	// Set up the socket
 	listenSocketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	if (listenSocketFD < 0) error("ERROR opening socket");
+
+	// error if socket fails
+	if (listenSocketFD < 0) 
+	{
+		error("ERROR opening socket");
+	}
 
 	// Enable the socket to begin listening
 	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to port
@@ -41,6 +65,10 @@ int main(int argc, char *argv[])
 
 	// Accept a connection, blocking if one is not available until one connects
 	sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
+
+// *******************************************************
+// Good up until this point
+
 	establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
 	if (establishedConnectionFD < 0) error("ERROR on accept");
 

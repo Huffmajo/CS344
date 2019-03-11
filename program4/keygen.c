@@ -2,6 +2,9 @@
  * Program: keygen.c
  * Author: Joel Huffman
  * Last updated: 3/9/2019
+ * Description: Generates and returns to stdout a string of
+ * random characters from A-Z and space of length determined
+ * by the user.
  * Sources: https://www.tutorialspoint.com/c_standard_library/c_function_atoi.htm
  ***********************************************************/
 #include <stdio.h>

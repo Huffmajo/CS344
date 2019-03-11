@@ -2,7 +2,11 @@
  * Program: otp_enc.c
  * Author: Joel Huffman
  * Last updated: 3/9/2019
- * Sources: https:
+ * Description: Accepts plainText file, keyfile and port number.
+ * Sends plainText and keyfile through connected port for 
+ * encryption. Then receives encrypted text back and outputs it
+ * to stdout.
+ * Sources: 
  ***********************************************************/
 
 #include <stdio.h>
@@ -14,7 +18,12 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-void error(const char *msg) { perror(msg); exit(0); } // Error function used for reporting issues
+// Error function used for reporting issues
+void error(const char *msg)
+{ 
+	perror(msg); 
+	exit(0); 
+}
 
 int main(int argc, char *argv[])
 {
