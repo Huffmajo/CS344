@@ -7,6 +7,7 @@
  * plainText file with a keyfile through the connection. Finally
  * the encrypted file is sent back through the connection.
  * Sources:
+ * https://beej.us/guide/bgnet/html/multi/recvman.html
  ***********************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,11 +17,16 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-// Error function used for reporting issues
-void error(const char *msg) 
+/***********************************************************
+ * Function: stderror(err)
+ * Accepts a string. Sends that string to standard error and
+ * exits with value 1.
+ ***********************************************************/
+void stderror(const char* string) 
 { 
-	perror(msg); 
-	exit(1); } 
+	fprintf(stderr, string); 
+	exit(1); 
+} 
 
 int main(int argc, char *argv[])
 {
@@ -28,19 +34,19 @@ int main(int argc, char *argv[])
 	    establishedConnectionFD, 
 	    portNumber, 
 	    charsRead;
+	    charsSent;
 	socklen_t sizeOfClientInfo;
-	char buffer[256];
+	int bufferSize = 25600;
+	char buffer[bufferSize];
 	struct sockaddr_in serverAddress, 
 			   clientAddress;
 
-	// Check usage & args
+	// check if valid number of arguments
 	if (argc < 2) 
 	{ 
 		fprintf(stderr,"USAGE: %s port\n", argv[1]); 
 		exit(1); 
 	} 
-
-
 
 	// Set up the address struct for this process (the server)
 	memset((char *)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
@@ -55,34 +61,125 @@ int main(int argc, char *argv[])
 	// error if socket fails
 	if (listenSocketFD < 0) 
 	{
-		error("ERROR opening socket");
+		stderror("ERROR opening socket\n");
 	}
 
 	// Enable the socket to begin listening
 	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to port
-		error("ERROR on binding");
+		stderror("ERROR on binding\n");
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
 
 	// Accept a connection, blocking if one is not available until one connects
 	sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
 
-// *******************************************************
-// Good up until this point
+	while (1)
+	{
+		pid_t pid;
+		long keyLen;
+		long plaintextLen;
 
-	establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
-	if (establishedConnectionFD < 0) error("ERROR on accept");
+		establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
+		if (establishedConnectionFD < 0) 
+		{
+			// print error, but don't exit
+			fprintf(stderr, "ERROR on accept\n");
+		}
 
-	// Get the message from the client and display it
-	memset(buffer, '\0', 256);
-	charsRead = recv(establishedConnectionFD, buffer, 255, 0); // Read the client's message from the socket
-	if (charsRead < 0) error("ERROR reading from socket");
-	printf("SERVER: I received this from the client: \"%s\"\n", buffer);
+		// fork off child process for connection
+		pid = fork();
 
-	// Send a Success message back to the client
-	charsRead = send(establishedConnectionFD, "I am the server, and I got your message", 39, 0); // Send success back
-	if (charsRead < 0) error("ERROR writing to socket");
-	close(establishedConnectionFD); // Close the existing socket which is connected to the client
-	close(listenSocketFD); // Close the listening socket
+		// error with fork
+		if (pid == -1)
+		{
+			stderror("Fork error\n");
+		}
+
+		// child process
+		else if (pid == 0)
+		{
+			// Get the message from the client and display it
+			memset(buffer, '\0', sizeof(buffer));
+			charsRead = recv(establishedConnectionFD, buffer, sizeof(buffer), 0); // Read the client's message from the socket
+			if (charsRead < 0) 
+			{
+				stderror("ERROR reading from socket\n");
+			}
+			printf("Server received this from client: \"%s\"\n", buffer);
+
+			// if both client and server are encoding continue	
+			if (cmpstr(buffer, "clientEncode") == 0)
+			{
+				// let client know we are a server also trying to encode
+				charsSent = send(establishedConnectionFD, "serverEncode", 12, 0); // Send success back
+				if (charsSent < 0)
+				{
+					error("ERROR writing to socket\n");
+				}
+
+				// get the lengths of the plaintext and key to be sent over
+				charsRead = recv(establishedConnectionFD, &plaintextLen, sizeof(plaintextLen), 0);
+				if (charsRead < 0)
+				{
+					error("ERROR receiving plaintext length\n");
+				}
+
+				charsRead = recv(establishedConnectionFD, &keyLen, sizeof(keyLen), 0);
+				if (charsRead < 0)
+				{
+					error("ERROR receiving key length\n");
+				}
+
+				// ensure key is large enough for plaintext
+				if (keyLen >= plaintextLen)
+				{
+					char plaintext[plaintextLen];
+					char key[keyLen];
+
+					// get plaintext across socket
+					charsRead = recv(establishedConnectionFD, &plaintext, sizeof(plaintext), MSG_WAITALL);
+					if (charsRead < 0)
+					{
+						error("ERROR receiving plaintext\n");
+					}
+
+					// get key across socket
+					charsRead = recv(establishedConnectionFD, &key, sizeof(key), MSG_WAITALL);
+					if (charsRead < 0)
+					{
+						error("ERROR receiving key\n");
+					}
+	
+					// encrypt plaintext using key
+
+					// send ciphertext back across socket
+	
+
+					// close socket to client
+					close(establishedConnectionFD); 
+					exit(0);
+				}
+			}
+
+			// otherwise don't keep sending stuff
+			else
+			{
+
+			}
+				
+		}
+
+		// parent process
+		else 
+		{
+
+			// close socket to client
+			close(establishedConnectionFD); 			
+		}
+
+	}
+	// done waiting for responses across socket
+	close(listenSocketFD);
+
 	return 0; 
 }
 
