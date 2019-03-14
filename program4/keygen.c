@@ -11,6 +11,17 @@
 #include <stdlib.h>
 #include <time.h>
 
+/***********************************************************
+ * Function: stderror(err)
+ * Accepts a string. Sends that string to standard error and
+ * exits with value 1.
+ ***********************************************************/
+void stderror(char* err)
+{
+	fprintf(stderr, err);
+	exit(1);
+}
+
 int main (int argc, char* argv[])
 {
 	int keylength;
@@ -50,7 +61,7 @@ int main (int argc, char* argv[])
 		// otherwise keylength is invalid
 		else
 		{
-			perror("Keylength is not a valid integer\n");
+			stderror("Keylength is not a valid integer\n");
 			exit(1);
 		}
 	}
@@ -58,7 +69,7 @@ int main (int argc, char* argv[])
 	// otherwise wrong number of arguments
 	else
 	{
-		perror("Wrong number of arguments\n");
+		stderror("Wrong number of arguments\n");
 		exit(1);
 	}
 
