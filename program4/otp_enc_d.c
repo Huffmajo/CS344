@@ -101,10 +101,10 @@ char* encrypt(char* plaintext, char* key)
 		}
 
 		// set cipherInt to int representation of char for conversion
-		cipherInt = (sumInt % 26) + 65;
+		cipherInt = (sumInt % 27) + 65;
 
 		// special case for ' ' again
-		if (cipherInt == 0)
+		if (cipherInt == 26)
 		{
 			cipherInt = 32;
 		}

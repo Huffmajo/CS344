@@ -18,12 +18,103 @@
 #include <netinet/in.h>
 #include <netdb.h> 
 
-// Error function used for reporting issues
-void error(const char *msg)
+}/***********************************************************
+ * Function: stderror(err)
+ * Accepts a string. Sends that string to standard error and
+ * exits with value 1.
+ ***********************************************************/
+void stderror(const char* string) 
 { 
-	perror(msg); 
-	exit(0); 
+	fprintf(stderr, string); 
+	exit(1); 
 }
+
+/***********************************************************
+ * Function: noBadChars(string)
+ * Accepts a string. Checks all characters in that string, if
+ * any are not A-Z or ' ', then returns 0. Otherwise returns
+ * 1.
+ ***********************************************************/
+int noBadChars(char* string)
+{
+	long i;
+	// check every char in string
+	for (i = 0; i < strlen(string); i++)
+	{
+		// if not A-Z or ' ', return 0 (false)
+		if (string[i] != 32 || (string[i] < 65 && string[i] > 90))
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
+
+/***********************************************************
+ * Function: decrypt(ciphertext, key)
+ * Accepts both ciphertext and key strings. Decrypts the 
+ * ciphertext using the key. Returns the now decrypted plaintext.
+ ***********************************************************/
+char* decrypt(char* ciphertext, char* key)
+{
+	// create plaintext to be filled with decrypted chars
+	char plaintext[strlen(ciphertext)];
+
+	int plainInt;
+	int keyInt;
+	int diffInt;
+	int cipherInt;
+
+	int i;
+	// for each char in ciphertext
+	for (i = 0; i < strlen[ciphertext]; i++)
+	{
+		// get integer representation of each plaintext char
+		// special case for space since it's not in sequence with A-Z
+		if (ciphertext[i] == ' ')
+		{
+			cipherInt = 26;
+		}
+
+		// otherwise convert as usual
+		else
+		{
+			cipherInt = atoi(ciphertext[i]) - 65;
+		}
+
+		// do same thing with key chars
+		if (key[i] == ' ')
+		{
+			keyInt = 26;
+		}
+		else
+		{
+			keyInt = atoi(key[i]) - 65;
+		}
+
+		// subtract key chars from cipher chars
+		diffInt = cipherInt - keyInt;
+		
+		// keep diffInt positive
+		if (diffInt < 0)
+		{
+			diffInt += 27;
+		}
+
+		// set plaintextInt to int representation of char for conversion
+		plainInt = (diffInt % 27) + 65;
+
+		// special case for ' ' again
+		if (plainInt == 26)
+		{
+			plainInt = 32;
+		}
+		
+		//convert plaintextInt to corresponding char and place in plaintext
+		frpintf(plaintext[i], "%c", plainInt);
+	}
+
+} 
 
 int main(int argc, char *argv[])
 {
