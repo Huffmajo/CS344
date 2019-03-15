@@ -28,6 +28,93 @@ void stderror(const char* string)
 	exit(1); 
 } 
 
+/***********************************************************
+ * Function: noBadChars(string)
+ * Accepts a string. Checks all characters in that string, if
+ * any are not A-Z or ' ', then returns 0. Otherwise returns
+ * 1.
+ ***********************************************************/
+int noBadChars(char* string)
+{
+	long i;
+	// check every char in string
+	for (i = 0; i < strlen(string); i++)
+	{
+		// if not A-Z or ' ', return 0 (false)
+		if (string[i] != 32 || (string[i] < 65 && string[i] > 90))
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
+
+/***********************************************************
+ * Function: encrypt(plaintext, key)
+ * Accepts both plaintext and key strings. Encrypts the 
+ * plaintext using the key. Returns the now encrypted plaintext.
+ ***********************************************************/
+char* encrypt(char* plaintext, char* key)
+{
+	// create ciphertext to be filled with encrypted chars
+	char ciphertext[strlen(plaintext)];
+
+	int plainInt;
+	int keyInt;
+	int sumInt;
+	int cipherInt;
+
+	int i;
+	// for each char in plaintext
+	for (i = 0; i < strlen[plaintext]; i++)
+	{
+		// get integer representation of each plaintext char
+		// special case for space since it's not in sequence with A-Z
+		if (plaintext[i] == ' ')
+		{
+			plainInt = 26;
+		}
+
+		// otherwise convert as usual
+		else
+		{
+			plainInt = atoi(plaintext[i]) - 65;
+		}
+
+		// do same thing with key chars
+		if (key[i] == ' ')
+		{
+			keyInt = 26;
+		}
+		else
+		{
+			keyInt = atoi(key[i]) - 65;
+		}
+
+		// add together converted chars
+		sumInt = plainInt + keyInt;
+		
+		// keep sumInt under 27
+		if (sumInt > 26)
+		{
+			sumInt -= 26;
+		}
+
+		// set cipherInt to int representation of char for conversion
+		cipherInt = (sumInt % 26) + 65;
+
+		// special case for ' ' again
+		if (cipherInt == 0)
+		{
+			cipherInt = 32;
+		}
+		
+		//convert cipherInt to corresponding char and place in ciphertext
+		frpintf(ciphertext[i], "%c", cipherInt);
+	}
+
+}
+
 int main(int argc, char *argv[])
 {
 	int listenSocketFD, 
@@ -36,7 +123,7 @@ int main(int argc, char *argv[])
 	    charsRead;
 	    charsSent;
 	socklen_t sizeOfClientInfo;
-	int bufferSize = 25600;
+	int bufferSize = 70000;
 	char buffer[bufferSize];
 	struct sockaddr_in serverAddress, 
 			   clientAddress;
@@ -148,11 +235,23 @@ int main(int argc, char *argv[])
 					{
 						error("ERROR receiving key\n");
 					}
+
+					//########### This might go in opt_enc
+					// check for bad chars in either plaintext or key
+					if (noBadChars(plaintext) * nobadChars(key))
+					{
+						stderror("input contains bad characters\n");
+					}
 	
 					// encrypt plaintext using key
+					char* ciphertext = encrypt(plaintext, key);
 
 					// send ciphertext back across socket
-	
+					charsSent = send(establishedConnectionFD, ciphertext, strlen(ciphertext), 0);
+					if (charsSent < 0)
+					{
+						error("ERROR writing to socket\n");
+					}
 
 					// close socket to client
 					close(establishedConnectionFD); 
