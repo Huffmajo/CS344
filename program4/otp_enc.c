@@ -118,12 +118,21 @@ char* decrypt(char* ciphertext, char* key)
 
 int main(int argc, char *argv[])
 {
-	int socketFD, portNumber, charsWritten, charsRead;
+	int socketFD, 
+	    portNumber, 
+	    charsWritten, 
+	    charsRead;
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
-	char buffer[256];
+	int bufferSize = 70000;
+	char buffer[bufferSize];
     
-	if (argc < 3) { fprintf(stderr,"USAGE: %s hostname port\n", argv[0]); exit(0); } // Check usage & args
+	// Check if valid number of arguments
+	if (argc < 3) 
+	{ 
+		fprintf(stderr,"USAGE: %s hostname port\n", argv[0]); 
+		exit(0); 
+	} 
 
 	// Set up the server address struct
 	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
