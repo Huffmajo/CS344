@@ -47,27 +47,22 @@ char* decrypt(char* ciphertext, char* key)
 	// for each char in ciphertext
 	for (i = 0; i < strlen(ciphertext); i++)
 	{
-		// get integer representation of each ciphertext char
-		// special case for space since it's not in sequence with A-Z
-		if (ciphertext[i] == ' ')
+		// convert char to ascii decimal value
+		// subtract 65 to make A-Z be 0-25
+		cipherInt = ciphertext[i] - 65;
+
+		// ' ' will be represented as 26
+		if (cipherInt == -33)
 		{
 			cipherInt = 26;
 		}
 
-		// otherwise convert as usual
-		else
-		{
-			cipherInt = ciphertext[i] - 65;
-		}
-
 		// do same thing with key chars
-		if (key[i] == ' ')
+		keyInt = key[i] - 65;
+
+		if (keyInt == -33)
 		{
 			keyInt = 26;
-		}
-		else
-		{
-			keyInt = key[i] - 65;
 		}
 
 		// get difference from cipher and key chars
