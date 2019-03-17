@@ -75,10 +75,10 @@ char* encrypt(char* plaintext, char* key)
 		sumInt = plainInt + keyInt;
 		
 		// keep sumInt under 27
-		if (sumInt > 26)
-		{
-			sumInt -= 26;
-		}
+//		if (sumInt > 26)
+//		{
+//			sumInt -= 26;
+//		}
 
 		// set cipherInt to int representation of char for conversion
 		cipherInt = (sumInt % 27) + 65;
