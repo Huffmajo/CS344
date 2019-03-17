@@ -1,14 +1,13 @@
 /***********************************************************
- * Program: otp_enc.c
+ * Program: otp_dec.c
  * Author: Joel Huffman
  * Last updated: 3/17/2019
- * Description: Accepts plainText file, keyfile and port number.
- * Sends plainText and keyfile through connected port for 
- * encryption. Then receives encrypted text back and outputs it
+ * Description: Accepts ciphertext file, keyfile and port number.
+ * Sends ciphertext and keyfile through connected port for 
+ * decryption. Then receives decrypted text back and outputs it
  * to stdout.
  * Sources: 
  ***********************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -82,13 +81,13 @@ int main(int argc, char *argv[])
 	FILE* plainFile = fopen(argv[1], "r");
 	fgets(plaintext, bufferSize , plainFile);
 	plainLen = strlen(plaintext);
-	plaintext[plainLen - 1] = '&';
+//	plaintext[plainLen - 1] = '&';
 	fclose(plainFile);
 
 	FILE* keyFile = fopen(argv[2], "r");
 	fgets(key, bufferSize , keyFile);
 	keyLen = strlen(key);
-	key[keyLen - 1] = '&';
+//	key[keyLen - 1] = '&';
 	fclose(plainFile);
 
 //	printf("\ntextfile: %s\n", plaintext);
@@ -96,12 +95,12 @@ int main(int argc, char *argv[])
 
 	int pBadChar;
 	int kBadChar;
-
+/*
 	// check plaintext for bad characters
 	if (pBadChar = noBadChars(plaintext) != -1)
 	{
 		printf("Plaintext: bad char %c at index %d\n", plaintext[pBadChar], pBadChar);
-		stderror("Plaintext contains bad characters\n");		
+		stderror("Ciphertext contains bad characters\n");		
 	}
 
 	// check key for bad characters
@@ -110,39 +109,34 @@ int main(int argc, char *argv[])
 		printf("Key: bad char %c at index %d\n", key[kBadChar], kBadChar);
 		stderror("Key contains bad characters\n");
 	}
+*/
+
 /*
 	// check files for bad characters
 	if (noBadChars(plaintext) * noBadChars(key) == 0)
 	{
 		stderror("Input contains bad characters\n");
 	}	
-
 	// check that plaintext is readable
 	if (plainFile = open(argv[1], O_RDONLY) < 0)
 	{
 		stderror("plaintext file unreadable\n");
 	}
-
 	// check that keyfile is also readable
 	if (keyFile = open(argv[2], O_RDONLY) < 0)
 	{
 		stderror("key file unreadable\n");
 	}
-
 	// read in plaintext file 
 	read(plainFile, plaintext, bufferSize);
-
 	// read in key file
 	read(keyFile, key, bufferSize);
-
 	// get plaintext and key lengths
 	plainLen = strlen(plaintext);
 	keyLen = strlen(key);
-
 	// replace ending newline character from plaintext and key with '\0'
 	plaintext[plainLen - 1] = '\0';
 	key[keyLen - 1] = '\0';
-
 	// key can't be shorter than plaintext
 	if (plainLen > keyLen)
 	{
@@ -150,14 +144,11 @@ int main(int argc, char *argv[])
 		printf("plainLen: %d\n", plainLen);
 		stderror("Key is too short\n");	
 	}
-
 	// close files
 	// close(plainFile);
 	// close(keyFile);
-
 	printf("\ntextfile: %s\n", plaintext);
 	printf("key: %s\n\n", key);
-
 	// check files for bad characters
 	if (noBadChars(plaintext) * noBadChars(key) == 0)
 	{
@@ -193,7 +184,7 @@ int main(int argc, char *argv[])
 	// Connect to server
 	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to address
 	{
-		fprintf(stderr, "Could not contact otp_enc_d on port %d\n", portNumber);
+		fprintf(stderr, "Could not contact otp_dec_d on port %d\n", portNumber);
 
 		// close socket before exiting
 		// close(socketFD);
@@ -202,15 +193,15 @@ int main(int argc, char *argv[])
 
 //	printf("3\n");
 
-	// send server message we're the client and we want to encode
-	charsSent = send(socketFD, "clientEncode", 12, 0);
+	// send server message we're the client and we want to decode
+	charsSent = send(socketFD, "clientDecode", 12, 0);
 	if (charsSent < 0) 
 	{
 		stderror("CLIENT: ERROR writing to socket\n");
 	}
 	if (charsSent < 12) 
 	{
-		printf("Not all data sent to the server: clientEncode\n");
+		printf("Not all data sent to the server: clientDecode\n");
 	}
 
 //	printf("4\n");
@@ -225,9 +216,9 @@ int main(int argc, char *argv[])
 //	printf("5\n");
 
 	// if server is not able to encode, throw error
-	if (strcmp(buffer, "serverEncode") != 0)
+	if (strcmp(buffer, "serverDecode") != 0)
 	{
-		fprintf(stderr, "Could not contact otp_enc_d on port %d\n", portNumber);
+		fprintf(stderr, "Could not contact otp_dec_d on port %d\n", portNumber);
 
 		// close socket before exiting
 		close(socketFD);
@@ -295,7 +286,8 @@ int main(int argc, char *argv[])
 
 	// re-append newline character before sending to stdout
 	// fprintf(stdout, "%s\n", ciphertext);
-	ciphertext[plainLen -1] = '\n';
+	ciphertext[plainLen - 1] = '\n';
+
 	printf(ciphertext);
 
 	// close the socket before exiting
