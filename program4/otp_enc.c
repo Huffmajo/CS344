@@ -35,8 +35,8 @@ void stderror(const char* string)
 /***********************************************************
  * Function: noBadChars(string)
  * Accepts a string. Checks all characters in that string, if
- * any are not A-Z or ' ', then returns 0. Otherwise returns
- * 1.
+ * any are not A-Z or ' ', then returns -1. Otherwise returns
+ * the index of first bad character.
  ***********************************************************/
 int noBadChars(char* string)
 {
@@ -44,13 +44,13 @@ int noBadChars(char* string)
 	// check every char in string
 	for (i = 0; i < strlen(string); i++)
 	{
-		// if not A-Z or ' ', return 0 (false)
-		if (string[i] != 32 || (string[i] < 65 && string[i] > 90))
+		// if not A-Z, ' ' or '&',  return i (false)
+		if (string[i] > 90 || (string[i] < 65 && string[i] != 32 && string[i] != 38))
 		{
-			return 0;
+			return i;
 		}
 	}
-	return 1;
+	return -1;
 }
 
 int main(int argc, char *argv[])
@@ -62,32 +62,60 @@ int main(int argc, char *argv[])
 	    charsSent;
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
-	int bufferSize = 70000;
+	int bufferSize = 150000;
 	char buffer[bufferSize];
 	char plaintext[bufferSize];
 	char key[bufferSize];
 	char ciphertext[bufferSize];
 	long plainLen;
 	long keyLen;
-	int plainFile;
-	int keyFile;
+//	int plainFile;
+//	int keyFile;
     
 	// check if valid number of arguments
 	if (argc < 4) 
 	{ 
 		fprintf(stderr,"Wrong number of arguments\n"); 
-		exit(0); 
+		exit(1); 
 	} 
 
-	// get plaintext and key lengths
-	plainLen = strlen(argv[1]);
-	keyLen = strlen(argv[2]);
+	FILE* plainFile = fopen(argv[1], "r");
+	fgets(plaintext, bufferSize , plainFile);
+	plainLen = strlen(plaintext);
+	plaintext[plainLen - 1] = '&';
+	fclose(plainFile);
 
-	// key can't be shorter than plaintext
-	if (plainLen > keyLen)
+	FILE* keyFile = fopen(argv[2], "r");
+	fgets(key, bufferSize , keyFile);
+	keyLen = strlen(key);
+	key[keyLen - 1] = '&';
+	fclose(plainFile);
+
+//	printf("\ntextfile: %s\n", plaintext);
+//	printf("key: %s\n\n", key);
+
+	int pBadChar;
+	int kBadChar;
+
+	// check plaintext for bad characters
+	if (pBadChar = noBadChars(plaintext) != -1)
 	{
-		stderror("Key is too short\n");	
+		printf("Plaintext: bad char %c at index %d\n", plaintext[pBadChar], pBadChar);
+		stderror("Plaintext contains bad characters\n");		
 	}
+
+	// check key for bad characters
+	if (kBadChar = noBadChars(key) != -1)
+	{
+		printf("Key: bad char %c at index %d\n", key[kBadChar], kBadChar);
+		stderror("Key contains bad characters\n");
+	}
+/*
+	// check files for bad characters
+	if (noBadChars(plaintext) * noBadChars(key) == 0)
+	{
+		stderror("Input contains bad characters\n");
+	}	
 
 	// check that plaintext is readable
 	if (plainFile = open(argv[1], O_RDONLY) < 0)
@@ -107,19 +135,35 @@ int main(int argc, char *argv[])
 	// read in key file
 	read(keyFile, key, bufferSize);
 
+	// get plaintext and key lengths
+	plainLen = strlen(plaintext);
+	keyLen = strlen(key);
+
 	// replace ending newline character from plaintext and key with '\0'
 	plaintext[plainLen - 1] = '\0';
 	key[keyLen - 1] = '\0';
 
+	// key can't be shorter than plaintext
+	if (plainLen > keyLen)
+	{
+		printf("keyLen: %d\n", keyLen);
+		printf("plainLen: %d\n", plainLen);
+		stderror("Key is too short\n");	
+	}
+
 	// close files
-	close(plainFile);
-	close(keyFile);
+	// close(plainFile);
+	// close(keyFile);
+
+	printf("\ntextfile: %s\n", plaintext);
+	printf("key: %s\n\n", key);
 
 	// check files for bad characters
 	if (noBadChars(plaintext) * noBadChars(key) == 0)
 	{
 		stderror("Input contains bad characters\n");
 	}
+*/
 
 	// Set up the server address struct
 	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
@@ -130,10 +174,12 @@ int main(int argc, char *argv[])
 	if (serverHostInfo == NULL) 
 	{ 
 		fprintf(stderr, "CLIENT: ERROR, no such host\n"); 
-		exit(0); 
+		exit(1); 
 	}
 
 	memcpy((char*)&serverAddress.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
+
+//	printf("1\n");
 
 	// Set up the socket
 	socketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
@@ -142,15 +188,19 @@ int main(int argc, char *argv[])
 		 stderror("CLIENT: ERROR opening socket\n");
 	}
 
+//	printf("2\n");	
+
 	// Connect to server
 	if (connect(socketFD, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to address
 	{
 		fprintf(stderr, "Could not contact otp_enc_d on port %d\n", portNumber);
 
 		// close socket before exiting
-		close(socketFD);
+		// close(socketFD);
 		exit(2);
 	}
+
+//	printf("3\n");
 
 	// send server message we're the client and we want to encode
 	charsSent = send(socketFD, "clientEncode", 12, 0);
@@ -158,11 +208,12 @@ int main(int argc, char *argv[])
 	{
 		stderror("CLIENT: ERROR writing to socket\n");
 	}
-
 	if (charsSent < 12) 
 	{
-		printf("Not all data sent to the server\n");
+		printf("Not all data sent to the server: clientEncode\n");
 	}
+
+//	printf("4\n");
 
 	// receive message from server and compare to see if they can encode
 	charsRead = recv(socketFD, buffer, sizeof(buffer), 0);
@@ -170,7 +221,9 @@ int main(int argc, char *argv[])
 	{
 		stderror("Error receiving data from server\n");
 	}
-	
+
+//	printf("5\n");
+
 	// if server is not able to encode, throw error
 	if (strcmp(buffer, "serverEncode") != 0)
 	{
@@ -180,6 +233,8 @@ int main(int argc, char *argv[])
 		close(socketFD);
 		exit(2);
 	}	
+
+//	printf("6\n");
 
 	// send length of plaintext
 	charsSent = send(socketFD, &plainLen, sizeof(plainLen), 0);
@@ -192,6 +247,8 @@ int main(int argc, char *argv[])
 	{
 		printf("Not all data sent to the server\n");
 	}
+
+//	printf("7\n");
 
 	// send length of key
 	charsSent = send(socketFD, &keyLen, sizeof(keyLen), 0);

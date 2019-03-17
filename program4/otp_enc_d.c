@@ -1,7 +1,7 @@
 /***********************************************************
  * Program: otp_enc_d.c
  * Author: Joel Huffman
- * Last updated: 3/9/2019
+ * Last updated: 3/17/2019
  * Description: Gets a port number and listens at that port
  * for a socket connection. Then receives and encrypts a 
  * plainText file with a keyfile through the connection. Finally
@@ -102,7 +102,8 @@ int main(int argc, char *argv[])
 	    establishedConnectionFD, 
 	    portNumber, 
 	    charsRead,
-	    charsSent;
+	    charsSent,
+	    optval;
 	socklen_t sizeOfClientInfo;
 	int bufferSize = 70000;
 	char buffer[bufferSize];
@@ -132,9 +133,16 @@ int main(int argc, char *argv[])
 		stderror("ERROR opening socket\n");
 	}
 
+	// can re-use ports 
+	optval = 1;
+	setsockopt(listenSocketFD, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int));
+
 	// Enable the socket to begin listening
 	if (bind(listenSocketFD, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) < 0) // Connect socket to port
+	{
 		stderror("ERROR on binding\n");
+	}
+
 	listen(listenSocketFD, 5); // Flip the socket on - it can now receive up to 5 connections
 
 	// Accept a connection, blocking if one is not available until one connects
@@ -173,6 +181,7 @@ int main(int argc, char *argv[])
 				stderror("ERROR reading from socket\n");
 			}
 			printf("Server received this from client: \"%s\"\n", buffer);
+			fflush(stdout);
 
 			// if both client and server are encoding continue	
 			if (strcmp(buffer, "clientEncode") == 0)
