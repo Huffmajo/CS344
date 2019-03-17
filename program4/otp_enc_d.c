@@ -48,37 +48,26 @@ char* encrypt(char* plaintext, char* key)
 	// for each char in plaintext
 	for (i = 0; i < strlen(plaintext); i++)
 	{
-		// get integer representation of each plaintext char
-		// special case for space since it's not in sequence with A-Z
-		if (plaintext[i] == ' ')
+		// convert char to ascii decimal value
+		// subtract 65 to make A-Z be 0-25
+		plainInt = plaintext[i] - 65;
+
+		// ' ' will be represented as 26
+		if (plainInt == -33)
 		{
 			plainInt = 26;
 		}
 
-		// otherwise convert as usual
-		else
-		{
-			plainInt = plaintext[i] - 65;
-		}
-
 		// do same thing with key chars
-		if (key[i] == ' ')
+		keyInt = key[i] - 65;
+
+		if (keyInt == -33)
 		{
 			keyInt = 26;
-		}
-		else
-		{
-			keyInt = key[i] - 65;
 		}
 
 		// add together converted chars
 		sumInt = plainInt + keyInt;
-		
-		// keep sumInt under 27
-//		if (sumInt > 26)
-//		{
-//			sumInt -= 26;
-//		}
 
 		// set cipherInt to int representation of char for conversion
 		cipherInt = (sumInt % 27) + 65;
@@ -90,7 +79,6 @@ char* encrypt(char* plaintext, char* key)
 		}
 		
 		// convert cipherInt to corresponding char and place in ciphertext
-		// fprintf(ciphertext[i], "%c", cipherInt);
 		ciphertext[i] = cipherInt;
 	}
 	return ciphertext;
@@ -180,8 +168,6 @@ int main(int argc, char *argv[])
 			{
 				stderror("ERROR reading from socket\n");
 			}
-			printf("Server received this from client: \"%s\"\n", buffer);
-			fflush(stdout);
 
 			// if both client and server are encoding continue	
 			if (strcmp(buffer, "clientEncode") == 0)
@@ -225,14 +211,7 @@ int main(int argc, char *argv[])
 					{
 						error("ERROR receiving key\n");
 					}
-/*
-					//########### This might go in opt_enc
-					// check for bad chars in either plaintext or key
-					if (noBadChars(plaintext) * nobadChars(key))
-					{
-						stderror("input contains bad characters\n");
-					}
-*/	
+
 					// encrypt plaintext using key
 					char* ciphertext = encrypt(plaintext, key);
 
@@ -257,14 +236,12 @@ int main(int argc, char *argv[])
 				{
 					error("ERROR writing to socket\n");
 				}				
-			}
-				
+			}				
 		}
 
 		// parent process
 		else 
 		{
-
 			// close socket to client
 			close(establishedConnectionFD); 			
 		}
