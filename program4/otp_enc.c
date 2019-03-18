@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 	    charsSent;
 	struct sockaddr_in serverAddress;
 	struct hostent* serverHostInfo;
-	int bufferSize = 150000;
+	int bufferSize = 70000;
 	char buffer[bufferSize];
 	char plaintext[bufferSize];
 	char key[bufferSize];
@@ -77,12 +77,14 @@ int main(int argc, char *argv[])
 		exit(1); 
 	} 
 
+	// read plainfile, get length and replace newline with null char
 	FILE* plainFile = fopen(argv[1], "r");
 	fgets(plaintext, bufferSize , plainFile);
 	plainLen = strlen(plaintext);
 	plaintext[plainLen - 1] = '&';
 	fclose(plainFile);
 
+	// read key, get length and replace newline with null char
 	FILE* keyFile = fopen(argv[2], "r");
 	fgets(key, bufferSize , keyFile);
 	keyLen = strlen(key);
@@ -95,7 +97,7 @@ int main(int argc, char *argv[])
 		stderror("Key is too short\n");
 	}
 
-	// check plaintext for bad characters
+	// check plaintext and key for bad characters
 	if ((noBadChars(plaintext) * noBadChars(key)) != 1)
 	{
 		stderror("Input contains bad characters\n");		

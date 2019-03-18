@@ -163,9 +163,9 @@ int main(int argc, char *argv[])
 		// child process
 		else if (pid == 0)
 		{
-			// Get the message from the client and display it
+			// Receive function client is try to do (encode/decode)
 			memset(buffer, '\0', sizeof(buffer));
-			charsRead = recv(establishedConnectionFD, buffer, sizeof(buffer), 0); // Read the client's message from the socket
+			charsRead = recv(establishedConnectionFD, buffer, sizeof(buffer), 0);
 			if (charsRead < 0) 
 			{
 				fprintf(stderr, "ERROR reading from socket\n");
@@ -174,60 +174,57 @@ int main(int argc, char *argv[])
 			// if both client and server are encoding continue	
 			if (strcmp(buffer, "clientEncode") == 0)
 			{
-				// let client know we are a server also trying to encode
-				charsSent = send(establishedConnectionFD, "serverEncode", 12, 0); // Send success back
-				if (charsSent < 0)
+				// let client know we can encode through this port
+				charsSent = send(establishedConnectionFD, "serverEncode", 12, 0); 				if (charsSent < 0)
 				{
-					error("ERROR writing to socket\n");
+					fprintf(stderr, "ERROR writing to socket\n");
 				}
 
-				// get the lengths of the plaintext and key to be sent over
+				// receive plaintext length and store
 				charsRead = recv(establishedConnectionFD, &plaintextLen, sizeof(plaintextLen), 0);
 				if (charsRead < 0)
 				{
-					error("ERROR receiving plaintext length\n");
+					fprintf(stderr, "ERROR receiving plaintext length\n");
 				}
 
+				// receive key length and store
 				charsRead = recv(establishedConnectionFD, &keyLen, sizeof(keyLen), 0);
 				if (charsRead < 0)
 				{
-					error("ERROR receiving key length\n");
+					fprintf(stderr, "ERROR receiving key length\n");
 				}
 
-				// ensure key is large enough for plaintext
-				if (keyLen >= plaintextLen)
+				// create buffers for plaintext and key with received lengths
+				char plaintext[plaintextLen];
+				char key[keyLen];
+
+				// receive and store plaintext
+				charsRead = recv(establishedConnectionFD, &plaintext, sizeof(plaintext), 0);
+				if (charsRead < 0)
 				{
-					char plaintext[plaintextLen];
-					char key[keyLen];
-
-					// get plaintext across socket
-					charsRead = recv(establishedConnectionFD, &plaintext, sizeof(plaintext), 0);
-					if (charsRead < 0)
-					{
-						error("ERROR receiving plaintext\n");
-					}
-
-					// get key across socket
-					charsRead = recv(establishedConnectionFD, &key, sizeof(key), 0);
-					if (charsRead < 0)
-					{
-						error("ERROR receiving key\n");
-					}
-
-					// encrypt plaintext using key
-					char* ciphertext = encrypt(plaintext, key);
-
-					// send ciphertext back across socket
-					charsSent = send(establishedConnectionFD, ciphertext, strlen(ciphertext), 0);
-					if (charsSent < 0)
-					{
-						error("ERROR writing to socket\n");
-					}
-
-					// close socket to client
-					close(establishedConnectionFD); 
-					exit(0);
+					fprintf(stderr, "ERROR receiving plaintext\n");
 				}
+
+				// receive and store key
+				charsRead = recv(establishedConnectionFD, &key, sizeof(key), 0);
+				if (charsRead < 0)
+				{
+					fprintf(stderr, "ERROR receiving key\n");
+				}
+
+				// encrypt plaintext using key
+				char* ciphertext = encrypt(plaintext, key);
+
+				// send ciphertext back across socket
+				charsSent = send(establishedConnectionFD, ciphertext, strlen(ciphertext), 0);
+				if (charsSent < 0)
+				{
+					fprintf(stderr, "ERROR writing to socket\n");
+				}
+
+				// close socket to client
+				close(establishedConnectionFD); 
+				exit(0);
 			}
 
 			// otherwise let the client know this is a mismatch so it can disconnect
@@ -236,7 +233,7 @@ int main(int argc, char *argv[])
 				charsSent = send(establishedConnectionFD, "ABORT!", 6, 0);
 				if (charsSent < 0)
 				{
-					error("ERROR writing to socket\n");
+					fprintf(stderr, "ERROR writing to socket\n");
 				}				
 			}				
 		}

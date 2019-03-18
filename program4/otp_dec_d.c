@@ -43,7 +43,7 @@ char* decrypt(char* ciphertext, char* key)
 	int diffInt;
 	int cipherInt;
 
-	long i;
+	int i;
 	// for each char in ciphertext
 	for (i = 0; i < strlen(ciphertext); i++)
 	{
@@ -163,65 +163,65 @@ int main(int argc, char *argv[])
 			charsRead = recv(establishedConnectionFD, buffer, sizeof(buffer), 0); // Read the client's message from the socket
 			if (charsRead < 0) 
 			{
-				stderror("ERROR reading from socket\n");
+				fprintf(stderr, "ERROR reading from socket\n");
 			}
 
-			// if both client and server are encoding continue	
+			// if both client and server are decoding continue	
 			if (strcmp(buffer, "clientDecode") == 0)
 			{
 				// let client know we are a server also trying to decode
 				charsSent = send(establishedConnectionFD, "serverDecode", 12, 0); // Send success back
 				if (charsSent < 0)
 				{
-					stderror("ERROR writing to socket\n");
+					fprintf(stderr, "ERROR writing to socket\n");
 				}
 
 				// get the lengths of the plaintext and key to be sent over
 				charsRead = recv(establishedConnectionFD, &ciphertextLen, sizeof(ciphertextLen), 0);
 				if (charsRead < 0)
 				{
-					stderror("ERROR receiving ciphertext length\n");
+					fprintf(stderr, "ERROR receiving ciphertext length\n");
 				}
 
 				charsRead = recv(establishedConnectionFD, &keyLen, sizeof(keyLen), 0);
 				if (charsRead < 0)
 				{
-					stderror("ERROR receiving key length\n");
+					fprintf(stderr, "ERROR receiving key length\n");
 				}
 
-				// ensure key is large enough for plaintext
-				if (keyLen >= ciphertextLen)
+				// create buffers for ciphertext and key
+				char ciphertext[ciphertextLen];
+				char key[keyLen];
+				memset(ciphertext, '\0', sizeof(ciphertext));
+				memset(key, '\0', sizeof(key));
+
+				// get ciphertext across socket
+				charsRead = recv(establishedConnectionFD, &ciphertext, sizeof(ciphertext), 0);
+				if (charsRead < 0)
 				{
-					char ciphertext[ciphertextLen];
-					char key[keyLen];
+					fprintf(stderr, "ERROR receiving ciphertext\n");
+				}
 
-					// get ciphertext across socket
-					charsRead = recv(establishedConnectionFD, &ciphertext, sizeof(ciphertext), MSG_WAITALL);
-					if (charsRead < 0)
-					{
-						error("ERROR receiving ciphertext\n");
-					}
+				// get key across socket
+				charsRead = recv(establishedConnectionFD, &key, sizeof(key), 0);
+				if (charsRead < 0)
+				{
+					fprintf(stderr, "ERROR receiving key\n");
+				}
 
-					// get key across socket
-					charsRead = recv(establishedConnectionFD, &key, sizeof(key), MSG_WAITALL);
-					if (charsRead < 0)
-					{
-						error("ERROR receiving key\n");
-					}
+				// decrypt ciphertext using key
+				char* plaintext = decrypt(ciphertext, key);
 
-					// decrypt ciphertext using key
-					char* plaintext = decrypt(ciphertext, key);
+				// send plaintext back across socket
+				charsSent = send(establishedConnectionFD, plaintext, strlen(plaintext), 0);
+				if (charsSent < 0)
+				{
+					fprintf(stderr, "ERROR writing to socket\n");
+				}
 
-					// send plaintext back across socket
-					charsSent = send(establishedConnectionFD, plaintext, strlen(plaintext), 0);
-					if (charsSent < 0)
-					{
-						error("ERROR writing to socket\n");
-					}
-
-					// close socket to client
-					close(establishedConnectionFD); 
-					exit(0);
+				// close socket to client
+				close(establishedConnectionFD); 
+				exit(0);
 				}
 			}
 

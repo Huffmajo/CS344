@@ -16,9 +16,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 /***********************************************************
  * Function: stderror(err)
@@ -76,20 +73,17 @@ int main(int argc, char *argv[])
 		exit(1); 
 	} 
 
+	// read plainfile and get it's length
 	FILE* plainFile = fopen(argv[1], "r");
 	fgets(plaintext, bufferSize , plainFile);
 	plainLen = strlen(plaintext);
-//	plaintext[plainLen - 1] = '&';
 	fclose(plainFile);
 
+	// read key and get it's length
 	FILE* keyFile = fopen(argv[2], "r");
 	fgets(key, bufferSize , keyFile);
 	keyLen = strlen(key);
-//	key[keyLen - 1] = '&';
 	fclose(plainFile);
-
-	int pBadChar;
-	int kBadChar;
 
 	// Set up the server address struct
 	memset((char*)&serverAddress, '\0', sizeof(serverAddress)); // Clear out the address struct
@@ -130,7 +124,7 @@ int main(int argc, char *argv[])
 	}
 	if (charsSent < 12) 
 	{
-		printf("Not all data sent to the server: clientDecode\n");
+		stderror("Not all data sent to the server: clientDecode\n");
 	}
 
 	// receive message from server and compare to see if they can encode
@@ -159,7 +153,7 @@ int main(int argc, char *argv[])
 
 	if (charsSent < sizeof(plainLen)) 
 	{
-		printf("Not all data sent to the server\n");
+		stderror("Not all data sent to the server\n");
 	}
 
 	// send length of key
@@ -171,7 +165,7 @@ int main(int argc, char *argv[])
 
 	if (charsSent < sizeof(keyLen)) 
 	{
-		printf("Not all data sent to the server\n");
+		stderror("Not all data sent to the server\n");
 	}
 
 	// send plaintext
@@ -183,7 +177,7 @@ int main(int argc, char *argv[])
 
 	if (charsSent < strlen(plaintext)) 
 	{
-		printf("Not all data sent to the server\n");
+		stderror("Not all data sent to the server\n");
 	}
 
 	// send key
@@ -195,18 +189,17 @@ int main(int argc, char *argv[])
 
 	if (charsSent < strlen(key)) 
 	{
-		printf("Not all data sent to the server\n");
+		stderror("Not all data sent to the server\n");
 	}
 
 	// receive encoded ciphertext
-	charsRead = recv(socketFD, ciphertext, sizeof(ciphertext), MSG_WAITALL);
+	charsRead = recv(socketFD, ciphertext, sizeof(ciphertext), 0);
 	if (charsRead < 0)
 	{
 		stderror("Error receiving data from server\n");
 	}
 
 	// re-append newline character before sending to stdout
-	// fprintf(stdout, "%s\n", ciphertext);
 	ciphertext[plainLen - 1] = '\n';
 
 	printf(ciphertext);
