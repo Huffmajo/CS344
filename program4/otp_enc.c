@@ -17,9 +17,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h> 
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 /***********************************************************
  * Function: stderror(err)
@@ -144,7 +141,7 @@ int main(int argc, char *argv[])
 	}
 	if (charsSent < 12) 
 	{
-		printf("Not all data sent to the server: clientEncode\n");
+		stderror("Not all data sent to the server: clientEncode\n");
 	}
 
 	// receive message from server and compare to see if they can encode
@@ -173,7 +170,7 @@ int main(int argc, char *argv[])
 
 	if (charsSent < sizeof(plainLen)) 
 	{
-		printf("Not all data sent to the server\n");
+		stderror("Not all data sent to the server: plainLen\n");
 	}
 
 	// send length of key
@@ -185,7 +182,7 @@ int main(int argc, char *argv[])
 
 	if (charsSent < sizeof(keyLen)) 
 	{
-		printf("Not all data sent to the server\n");
+		stderror("Not all data sent to the server\n");
 	}
 
 	// send plaintext
@@ -197,7 +194,7 @@ int main(int argc, char *argv[])
 
 	if (charsSent < strlen(plaintext)) 
 	{
-		printf("Not all data sent to the server\n");
+		stderror("Not all data sent to the server\n");
 	}
 
 	// send key
@@ -209,10 +206,9 @@ int main(int argc, char *argv[])
 
 	if (charsSent < strlen(key)) 
 	{
-		printf("Not all data sent to the server\n");
+		stderror("Not all data sent to the server\n");
 	}
 
-	// receive encoded ciphertext
 	charsRead = recv(socketFD, ciphertext, sizeof(ciphertext), 0);
 	if (charsRead < 0)
 	{

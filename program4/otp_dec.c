@@ -28,27 +28,6 @@ void stderror(const char* string)
 	exit(1); 
 }
 
-/***********************************************************
- * Function: noBadChars(string)
- * Accepts a string. Checks all characters in that string, if
- * any are not A-Z or ' ', then returns -1. Otherwise returns
- * the index of first bad character.
- ***********************************************************/
-int noBadChars(char* string)
-{
-	long i;
-	// check every char in string
-	for (i = 0; i < strlen(string); i++)
-	{
-		// if not A-Z, ' ' or '&',  return i (false)
-		if (string[i] > 90 || (string[i] < 65 && string[i] != 32 && string[i] != 38))
-		{
-			return i;
-		}
-	}
-	return -1;
-}
-
 int main(int argc, char *argv[])
 {
 	int socketFD, 
@@ -112,7 +91,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Could not contact otp_dec_d on port %d\n", portNumber);
 
 		// close socket before exiting
-		// close(socketFD);
+		close(socketFD);
 		exit(2);
 	}
 

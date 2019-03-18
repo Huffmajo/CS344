@@ -197,15 +197,42 @@ int main(int argc, char *argv[])
 				// create buffers for plaintext and key with received lengths
 				char plaintext[plaintextLen];
 				char key[keyLen];
+				memset(plaintext, '\0', sizeof(plaintext));
+				memset(key, '\0', sizeof(key));
 
 				// receive and store plaintext
+/*
+				charsRead = 0;
+				int total = 0;
+				while (plaintext[plaintextLen - 1] != '&')
+				{
+					charsRead = recv(establishedConnectionFD, &plaintext[total], 1000, 0);	
+					total += charsRead;
+					if (charsRead < 0)
+					{
+						fprintf(stderr, "ERROR receiving plaintext\n");
+					}
+				}
+*/
 				charsRead = recv(establishedConnectionFD, &plaintext, sizeof(plaintext), 0);
 				if (charsRead < 0)
 				{
 					fprintf(stderr, "ERROR receiving plaintext\n");
 				}
-
+/*
 				// receive and store key
+				charsRead = 0;
+				total = 0;
+				while (key[keyLen - 1] != '&')
+				{
+					charsRead = recv(establishedConnectionFD, &key[total], 1000, 0);	
+					total += charsRead;
+					if (charsRead < 0)
+					{
+						fprintf(stderr, "ERROR receiving key\n");
+					}
+				}
+*/
 				charsRead = recv(establishedConnectionFD, &key, sizeof(key), 0);
 				if (charsRead < 0)
 				{
@@ -215,7 +242,21 @@ int main(int argc, char *argv[])
 				// encrypt plaintext using key
 				char* ciphertext = encrypt(plaintext, key);
 
+				// swap last character for '&' so client knows when to stop reading
+				ciphertext[strlen(ciphertext) - 1] = '&';
+/*
 				// send ciphertext back across socket
+				charsSent = 0;
+				while (charsSent < strlen(ciphertext))
+				{
+					charsSent = send(establishedConnectionFD, ciphertext, strlen(ciphertext), 0);
+					if (charsSent < 0)
+					{
+						fprintf(stderr, "ERROR writing to socket\n");
+					}
+				}
+*/		
+
 				charsSent = send(establishedConnectionFD, ciphertext, strlen(ciphertext), 0);
 				if (charsSent < 0)
 				{
