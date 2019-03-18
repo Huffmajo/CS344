@@ -165,7 +165,6 @@ int main(int argc, char *argv[])
 			{
 				stderror("ERROR reading from socket\n");
 			}
-			printf("Server received this from client: \"%s\"\n", buffer);
 
 			// if both client and server are encoding continue	
 			if (strcmp(buffer, "clientDecode") == 0)

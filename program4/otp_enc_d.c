@@ -8,6 +8,8 @@
  * the encrypted file is sent back through the connection.
  * Sources:
  * https://beej.us/guide/bgnet/html/multi/recvman.html
+ * https://stackoverflow.com/questions/27205810/how-recv-function-works-when-looping
+ * https://stackoverflow.com/questions/46126819/recv-not-getting-all-data-sent-by-client-using-send?rq=1
  ***********************************************************/
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,7 +95,7 @@ int main(int argc, char *argv[])
 	    charsSent,
 	    optval;
 	socklen_t sizeOfClientInfo;
-	int bufferSize = 70000;
+	int bufferSize = 150000;
 	char buffer[bufferSize];
 	struct sockaddr_in serverAddress, 
 			   clientAddress;
@@ -155,7 +157,7 @@ int main(int argc, char *argv[])
 		// error with fork
 		if (pid == -1)
 		{
-			stderror("Fork error\n");
+			fprintf(stderr, "Fork error\n");
 		}
 
 		// child process
@@ -166,7 +168,7 @@ int main(int argc, char *argv[])
 			charsRead = recv(establishedConnectionFD, buffer, sizeof(buffer), 0); // Read the client's message from the socket
 			if (charsRead < 0) 
 			{
-				stderror("ERROR reading from socket\n");
+				fprintf(stderr, "ERROR reading from socket\n");
 			}
 
 			// if both client and server are encoding continue	
@@ -199,14 +201,14 @@ int main(int argc, char *argv[])
 					char key[keyLen];
 
 					// get plaintext across socket
-					charsRead = recv(establishedConnectionFD, &plaintext, sizeof(plaintext), MSG_WAITALL);
+					charsRead = recv(establishedConnectionFD, &plaintext, sizeof(plaintext), 0);
 					if (charsRead < 0)
 					{
 						error("ERROR receiving plaintext\n");
 					}
 
 					// get key across socket
-					charsRead = recv(establishedConnectionFD, &key, sizeof(key), MSG_WAITALL);
+					charsRead = recv(establishedConnectionFD, &key, sizeof(key), 0);
 					if (charsRead < 0)
 					{
 						error("ERROR receiving key\n");
